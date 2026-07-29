@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const OUT = __dirname;
+const PHOTO = 'data:image/png;base64,' + fs.readFileSync(path.join(OUT,'person.png')).toString('base64');
 
 // ---------- Shared brand system ----------
 const CSS = `
@@ -50,17 +51,12 @@ const CSS = `
   .pill{ height:52px; padding:0 20px; border-radius:12px; display:flex; align-items:center; gap:10px;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); font-weight:700; font-size:18px; }
 
-  /* photo slot */
-  .photo{ position:absolute; right:70px; bottom:0; width:430px; height:660px;
-    display:flex; align-items:flex-end; justify-content:center; }
-  .photo .halo{ position:absolute; bottom:60px; width:400px; height:400px; border-radius:50%;
-    background:radial-gradient(circle,#2F7BFF66 0%,rgba(47,123,255,0) 70%); }
-  .photo .frame{ position:relative; width:360px; height:600px; border-radius:24px 24px 0 0;
-    background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
-    border:2px dashed rgba(255,255,255,.28); border-bottom:none;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
-  .photo .sil{ width:150px; height:150px; opacity:.55; }
-  .photo .cap{ font-size:16px; letter-spacing:2px; color:#9FB4D8; font-weight:800; text-transform:uppercase; text-align:center; line-height:1.5;}
+  /* photo */
+  .photo{ position:absolute; right:0; bottom:0; height:740px; display:flex; align-items:flex-end; }
+  .photo .halo{ position:absolute; right:60px; bottom:70px; width:460px; height:460px; border-radius:50%;
+    background:radial-gradient(circle,#2F7BFF55 0%,rgba(47,123,255,0) 70%); z-index:0; }
+  .photo img{ position:relative; z-index:1; height:740px; width:auto;
+    filter:drop-shadow(0 22px 40px rgba(0,0,0,.45)); }
 
   .deliv{ display:flex; align-items:center; gap:20px; margin-top:26px; }
   .ic{ width:60px; height:60px; border-radius:14px; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
@@ -103,18 +99,17 @@ function brand(){
     <div><div class="brandname">AMJAD ALI</div><div class="brandsub">Meta Ads Specialist</div></div></div>`;
 }
 function photoSlot(){
-  return `<div class="photo"><div class="halo"></div>
-    <div class="frame">${SIL}<div class="cap">Your Photo<br>Goes Here</div></div></div>`;
+  return `<div class="photo"><div class="halo"></div><img src="${PHOTO}"></div>`;
 }
 
 // ---------- Image 1: HERO ----------
 const img1 = `<div class="card"><div class="grid"></div>${CHART}<div class="accentbar"></div>
   <div class="pad">
     ${brand()}
-    <div style="margin-top:64px;max-width:760px;">
+    <div style="margin-top:58px;max-width:670px;">
       <span class="eyebrow">Facebook &amp; Instagram Ads</span>
-      <div class="h1" style="font-size:78px;margin-top:16px;">Meta Ads That<br>Drive Real <span style="color:#38D9C4;">Sales</span></div>
-      <div class="muted" style="font-size:26px;font-weight:600;margin-top:22px;max-width:640px;">
+      <div class="h1" style="font-size:72px;margin-top:16px;">Meta Ads That<br>Drive Real <span style="color:#38D9C4;">Sales</span></div>
+      <div class="muted" style="font-size:25px;font-weight:600;margin-top:22px;max-width:560px;">
         Campaign setup, laser targeting, retargeting &amp; scaling — built to lower cost and grow ROAS.</div>
       <div style="margin-top:34px;">${trustBar()}</div>
       <div class="platforms" style="margin-top:30px;">
@@ -148,8 +143,8 @@ const img2 = `<div class="card"><div class="grid"></div>${CHART}<div class="acce
 const img3 = `<div class="card"><div class="grid"></div>${CHART}<div class="accentbar"></div>
   <div class="pad">
     ${brand()}
-    <div class="h1" style="font-size:56px;margin-top:40px;max-width:720px;">Why Businesses<br>Choose <span style="color:#38D9C4;">My Ads</span></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:820px;margin-top:40px;">
+    <div class="h1" style="font-size:54px;margin-top:36px;max-width:620px;">Why Businesses<br>Choose <span style="color:#38D9C4;">My Ads</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:600px;margin-top:36px;">
       <div class="stat"><div class="big">4.9★</div><div class="lab">Average Rating</div></div>
       <div class="stat"><div class="big">76</div><div class="lab">5-Star Reviews</div></div>
       <div class="stat"><div class="big">Top</div><div class="lab">Rated Seller</div></div>
