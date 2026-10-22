@@ -1,0 +1,93 @@
+# ark_artworks_ — Meta ad: reel + copy
+
+## Files
+
+| File | Use it for |
+|---|---|
+| `output/ark_artworks_ad_reels-9x16.mp4` | Reels and Stories placements (1080×1920, 30 s, with music) |
+| `output/ark_artworks_ad_reels-9x16_no-music.mp4` | Same video, silent, so you can add a track from Meta's sound library |
+| `output/ark_artworks_ad_feed-4x5.mp4` | Facebook and Instagram Feed (1080×1350) |
+| `output/cover_*.jpg` | Thumbnail / cover frame |
+
+All on-screen text sits inside Meta's Reels safe zone, so it stays clear of the top 14% (profile bar) and the bottom 35% (caption and CTA button).
+
+## Storyboard (30 s)
+
+| Time | Scene | On-screen text |
+|---|---|---|
+| 0–2.5 s | An empty whitewashed brick wall. *Convergence* fades onto it. | ORIGINAL ABSTRACT ART · *Your walls have been quiet long enough.* |
+| 2.5–6.9 s | *Convergence* above a charcoal fluted sideboard and a red glazed vase. The camera then pushes into the texture. | NO. 01 — CONVERGENCE · *Bold, but never loud.* |
+| 6.3–13.2 s | The camera pulls back from the brushwork to *Morning Light* in a warm white room with palm shadows, an oak bench and a cobalt throw. | NO. 02 — MORNING LIGHT · *Soft light. Slow mornings.* |
+| 12.6–19.5 s | *Solstice* on a cool pale-grey wall with window light, a black console and a sun-yellow sphere. | NO. 03 — SOLSTICE · *A little sunshine that never sets.* |
+| 18.9–25.8 s | *Grove* on a warm cream wall with olive shadows, an oak sideboard and a terracotta jar. | NO. 04 — GROVE · *Warm earth, fresh green.* |
+| 25.2–30 s | All four paintings together on a gallery wall. | @ark_artworks_ · *Four originals. One belongs on your wall.* · HAND-PAINTED · CUSTOM SIZES |
+
+Each room's colours come from its painting: red echoes for *Convergence*, cobalt and warm yellow for *Morning Light*, cool grey and sun yellow for *Solstice*, and sage and terracotta for *Grove*. The paintings are used exactly as photographed and are only resized.
+
+> **Painting names:** *Convergence* is the title from your post. *Morning Light*, *Solstice* and *Grove* are working titles I picked. To change them, edit `PAINTINGS` in `build_reel.py` and re-run.
+
+---
+
+## Primary text (the caption above the ad). Pick one, or A/B test them
+
+**A — Short and calm**
+> Some walls just need the right painting.
+> Four hand-painted abstracts, each made to set the mood of a room. Which one feels like yours? 🤍
+
+**B — Story**
+> Every painting here started as a blank canvas and a feeling.
+> Bold red for the room that starts conversations. Soft blue for slow mornings. A little sunshine that never sets. Warm greens for the space you come home to.
+> Original, hand-painted, and made in the size your wall needs.
+
+**C — Conversation starter** (good for engagement campaigns)
+> Quick question: which room would you walk into first?
+> 01 Convergence · 02 Morning Light · 03 Solstice · 04 Grove
+> Tell us your number 👇
+
+**D — For designers and businesses**
+> Designing a lobby, café or a client's living room?
+> Original abstract paintings in custom sizes, made to fit the space rather than the other way round.
+
+## Headline (under the video, 40 characters or fewer)
+- Original art for walls with personality
+- Hand-painted. Made for your space.
+- Find the painting your wall is missing
+- Four originals. One is yours.
+
+## Description (optional, under the headline)
+- Hand-painted abstract art · Custom sizes
+- Original textured paintings for homes and interiors
+
+## Call-to-action button
+- **Learn More** for a website or shop
+- **Send Message** for DM / WhatsApp sales, which suits commissions and custom sizes best
+- **Shop Now** only if you have a checkout page
+
+## Instagram caption (if you also post it organically)
+> Your walls have been quiet long enough. ✨
+>
+> Four original paintings, four different moods:
+> 01 Convergence: bold, but never loud
+> 02 Morning Light: soft light, slow mornings
+> 03 Solstice: a little sunshine that never sets
+> 04 Grove: warm earth, fresh green
+>
+> Which room would you walk into first? 1–4 👇
+> Hand-painted abstract art · Custom sizes
+>
+> #abstractart #originalart #interiordesign #homedecor #wallart #interiordecor #artforsale #modernart #texturedart #homeinteriors #artcollector #livingroomdecor
+
+## Targeting starting point
+- **Interests:** interior design, home decor, art collecting, architecture, Architectural Digest, Elle Decor, Houzz, Pinterest, IKEA, boutique hotels.
+- **Behaviours:** recently moved, engaged shoppers.
+- **Ages:** 27–60. Start broad (Advantage+ audience) and let the video's engagement guide delivery.
+- **Retarget:** people who watched 50% or more of this video, using caption D or a close-up of a single painting.
+
+## Re-building / editing the video
+```bash
+pip install numpy pillow scipy
+python3 build_reel.py            # 9:16 Reels/Stories
+python3 build_reel.py --feed     # 4:5 Feed
+python3 build_reel.py --preview 2.4 10 29   # quick stills at those seconds
+```
+Room scenes are in `scenes.py` and are cached in `.cache/`. Delete a room's file there to re-render it after editing.
