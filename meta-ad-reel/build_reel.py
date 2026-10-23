@@ -25,7 +25,7 @@ DUR = 30.0
 FEED = '--feed' in sys.argv
 OW, OH = (1080, 1350) if FEED else (1080, 1920)
 # where the text block starts (reel: below the top 14% Reels UI zone)
-TEXT_Y = 46 if FEED else 300
+TEXT_Y = 46 if FEED else 274
 # vertical centre of the wide shot in room coordinates
 WIDE_CY = 960
 TS = 0.78 if FEED else 1.0  # text scale
@@ -126,14 +126,14 @@ def text_layer(block, t, t_in, t_out):
     for i, (kind, txt) in enumerate(items):
         u = ease((t - t_in - i * 0.14) / 0.7, 'out')
         a = u * out
-        h = int({'k': 50, 'l': 84, 's': 52}[kind] * TS)
+        h = int({'k': 48, 'l': 76, 's': 46}[kind] * TS)
         if a > 0.01:
             lay = Image.new('RGBA', (OW, h + 30), (0, 0, 0, 0))
             d = ImageDraw.Draw(lay)
             if kind == 'k':
                 spaced(d, 6, txt, font(SANS, int(25 * TS)), kcol + (255,), (7.5 if txt.isupper() else 2.5) * TS)
             elif kind == 'l':
-                f = font(SERIF_I, int(84 * TS))
+                f = font(SERIF_I, int(76 * TS))
                 d.text(((OW - d.textlength(txt, font=f)) / 2, 0), txt, font=f, fill=INK + (255,))
             else:
                 spaced(d, int(18 * TS), txt, font(SANS_R, int(21 * TS)), (90, 86, 80, 255), 5 * TS)

@@ -531,7 +531,7 @@ def build(key):
         room('#EFECE7', 'oak', '#C9AE88', sun_side=-1, leaves=None, sun_strength=2.5, seed=6)
         h, gx, gz = 0.60, 0.08, 0.07
         order = [['convergence', 'morning-light'], ['solstice', 'grove']]
-        rows_cz = [1.36 + h / 2 + gz / 2 + 0.02, 1.36 - h / 2 - gz / 2 + 0.02]
+        rows_cz = [1.36 + h / 2 + gz / 2 - 0.20, 1.36 - h / 2 - gz / 2 - 0.20]
         for r, row in enumerate(order):
             ws = [h * Image.open(ART[k]).width / Image.open(ART[k]).height for k in row]
             x = -(sum(ws) + gx) / 2
