@@ -15,14 +15,14 @@ All on-screen text sits inside Meta's Reels safe zone, so it stays clear of the 
 
 | Time | Scene | On-screen text |
 |---|---|---|
-| 0–2.5 s | An empty whitewashed brick wall. *Convergence* fades onto it. | ORIGINAL ABSTRACT ART · *Your walls have been quiet long enough.* |
-| 2.5–6.9 s | *Convergence* above a charcoal fluted sideboard and a red glazed vase. The camera then pushes into the texture. | NO. 01 — CONVERGENCE · *Bold, but never loud.* |
-| 6.3–13.2 s | The camera pulls back from the brushwork to *Morning Light* in a warm white room with palm shadows, an oak bench and a cobalt throw. | NO. 02 — MORNING LIGHT · *Soft light. Slow mornings.* |
-| 12.6–19.5 s | *Solstice* on a cool pale-grey wall with window light, a black console and a sun-yellow sphere. | NO. 03 — SOLSTICE · *A little sunshine that never sets.* |
-| 18.9–25.8 s | *Grove* on a warm cream wall with olive shadows, an oak sideboard and a terracotta jar. | NO. 04 — GROVE · *Warm earth, fresh green.* |
+| 0–2.5 s | An empty warm-plaster wall. *Convergence* fades onto it. | ORIGINAL ABSTRACT ART · *Your walls have been quiet long enough.* |
+| 2.5–6.9 s | *Convergence* above a light oak fluted sideboard with an ivory vase and travertine bowl. The camera then pushes into the texture. | NO. 01 — CONVERGENCE · *Bold, but never loud.* |
+| 6.3–13.2 s | The camera pulls back from the brushwork to *Morning Light* in a warm greige room with palm shadows, a walnut bench and a cream linen throw. | NO. 02 — MORNING LIGHT · *Soft light. Slow mornings.* |
+| 12.6–19.5 s | *Solstice* on a warm sand wall with window light and a travertine-and-oak console. | NO. 03 — SOLSTICE · *A little sunshine that never sets.* |
+| 18.9–25.8 s | *Grove* on a soft white wall with olive-leaf shadows, a white sideboard and white and charcoal ceramics. | NO. 04 — GROVE · *Warm earth, fresh green.* |
 | 25.2–30 s | All four paintings together on a gallery wall. | @ark_artworks_ · *Four originals. One belongs on your wall.* · HAND-PAINTED · CUSTOM SIZES |
 
-Each room's colours come from its painting: red echoes for *Convergence*, cobalt and warm yellow for *Morning Light*, cool grey and sun yellow for *Solstice*, and sage and terracotta for *Grove*. The paintings are used exactly as photographed and are only resized.
+Each room is a neutral backdrop (warm white, greige, sand or soft white) with natural materials: oak, walnut, linen, travertine and ceramic. No prop repeats a colour from its painting, so the painting is the only colour in the room. The paintings are used exactly as photographed and are only resized.
 
 > **Painting names:** *Convergence* is the title from your post. *Morning Light*, *Solstice* and *Grove* are working titles I picked. To change them, edit `PAINTINGS` in `build_reel.py` and re-run.
 
