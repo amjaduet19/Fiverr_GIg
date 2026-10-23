@@ -19,8 +19,10 @@ All on-screen text sits inside Meta's Reels safe zone, so it stays clear of the 
 | 2.5–6.9 s | *Convergence* above a light oak fluted sideboard with an ivory vase and travertine bowl. The camera then pushes into the texture. | NO. 01 — CONVERGENCE · *Bold, but never loud.* |
 | 6.3–13.2 s | The camera pulls back from the brushwork to *Morning Light* in a warm greige room with palm shadows, a walnut bench and a cream linen throw. | NO. 02 — MORNING LIGHT · *Soft light. Slow mornings.* |
 | 12.6–19.5 s | *Solstice* on a warm sand wall with window light and a travertine-and-oak console. | NO. 03 — SOLSTICE · *A little sunshine that never sets.* |
-| 18.9–25.8 s | *Grove* on a soft white wall with olive-leaf shadows, a white sideboard and white and charcoal ceramics. | NO. 04 — GROVE · *Warm earth, fresh green.* |
-| 25.2–30 s | All four paintings together on a gallery wall. | @ark_artworks_ · *Four originals. One belongs on your wall.* · HAND-PAINTED · CUSTOM SIZES |
+| 18.9–25.8 s | *Grove* on a soft white wall with olive-leaf shadows, a white fluted sideboard and white and charcoal ceramics. | NO. 04 — GROVE · *Warm earth, fresh green.* |
+| 25.2–30 s | All four paintings together on a gallery wall under picture lights, with a leather bench. | @ark_artworks_ · *Four originals. One belongs on your wall.* · HAND-PAINTED · CUSTOM SIZES |
+
+The rooms are 3D-rendered in Blender (Cycles) with simulated daylight through a window, so the light, shadows and materials behave like a photograph. Each painting is pasted pixel-for-pixel onto its panel and takes on only that panel's light and shadow.
 
 Each room is a neutral backdrop (warm white, greige, sand or soft white) with natural materials: oak, walnut, linen, travertine and ceramic. No prop repeats a colour from its painting, so the painting is the only colour in the room. The paintings are used exactly as photographed and are only resized.
 
@@ -86,8 +88,10 @@ Each room is a neutral backdrop (warm white, greige, sand or soft white) with na
 ## Re-building / editing the video
 ```bash
 pip install numpy pillow scipy
+pip install bpy               # Blender as a Python module, for the 3D rooms
+python3 render3d.py              # renders all rooms into .cache/ (add --draft for quick previews)
 python3 build_reel.py            # 9:16 Reels/Stories
 python3 build_reel.py --feed     # 4:5 Feed
 python3 build_reel.py --preview 2.4 10 29   # quick stills at those seconds
 ```
-Room scenes are in `scenes.py` and are cached in `.cache/`. Delete a room's file there to re-render it after editing.
+The 3D rooms are defined in `render3d.py` (`build()`); `scenes.py` holds the older flat-illustration rooms, which are only used if `.cache/` has no 3D renders. Re-run `render3d.py <room>` after editing a room.

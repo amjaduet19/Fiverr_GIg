@@ -27,7 +27,7 @@ OW, OH = (1080, 1350) if FEED else (1080, 1920)
 # where the text block starts (reel: below the top 14% Reels UI zone)
 TEXT_Y = 46 if FEED else 300
 # vertical centre of the wide shot in room coordinates
-WIDE_CY = 1000 if FEED else 960
+WIDE_CY = 960
 TS = 0.78 if FEED else 1.0  # text scale
 
 F = lambda n: os.path.join(HERE, 'fonts', n)
@@ -150,7 +150,7 @@ X = 0.6  # crossfade length
 
 
 def build_timeline(rects):
-    def detail(key, frac, z=2.7):
+    def detail(key, frac, z=1.75):
         x0, y0, x1, y1 = rects[key]
         return z, x0 + (x1 - x0) * frac[0], y0 + (y1 - y0) * frac[1]
 
@@ -163,7 +163,7 @@ def build_timeline(rects):
     starts = [6.3, 12.6, 18.9]
     for (k, _, _, _, fr), s in zip(PAINTINGS[1:], starts):
         dz, dx, dy = detail(k, fr)
-        ez, ex, ey = detail(k, (1 - fr[0], fr[1] + 0.12), 2.5)
+        ez, ex, ey = detail(k, (1 - fr[0], fr[1] + 0.12), 1.65)
         shots.append(dict(room=k, start=s, end=s + 6.3 + X, keys=[
             (s, dz * 1.04, dx, dy, 'lin'), (s + 0.5, dz, dx, dy, 'lin'),
             (s + 2.6, 1.02, 540, WIDE_CY, 'inout'), (s + 5.0, 1.07, 540, WIDE_CY - 25, 'lin'),
