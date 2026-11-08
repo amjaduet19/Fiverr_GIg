@@ -421,7 +421,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
 
   /* ---------- Rules ---------- */
   var DEFAULT_RATES = {
-    host: 10, ride: 1.5, meal: 10, side: 5, plan: 3, init: 10,
+    host: 10, ride: 1, meal: 10, side: 5, plan: 3, init: 10,
     capTier1: 10, capTier2: 20, capLow: 2, capMid: 5, capHigh: 10
   };
   var STORE_KEY = "gathering-split-v1";
@@ -449,7 +449,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     var people = [];
     for (var i = 0; i < MIN_SLOTS; i++) people.push({ id: nid("p"), name: "" });
     return {
-      example: false, title: "", date: todayISO(), place: "",
+      example: false, liftRateV2: true, title: "", date: todayISO(), place: "",
       people: people,
       expenses: [{ id: nid("e"), payer: "", shop: "", amount: "" }],
       hostId: "", rides: [], cooks: ["", "", ""], sideId: "", plannerId: "", initiator: "same", extras: [],
@@ -484,6 +484,9 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       if (raw) {
         var s = JSON.parse(raw);
         if (s && Array.isArray(s.people)) {
+          // The lift default used to be EUR 1.50 per leg; move saved copies of that old default to EUR 1.
+          if (!s.liftRateV2 && s.rates && Number(s.rates.ride) === 1.5) s.rates.ride = 1;
+          s.liftRateV2 = true;
           s.rates = Object.assign({}, DEFAULT_RATES, s.rates || {});
           s.cooks = (s.cooks || []).concat(["", "", ""]).slice(0, 3);
           s.rides = s.rides || []; s.expenses = s.expenses || []; s.extras = s.extras || [];
