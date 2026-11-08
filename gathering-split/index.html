@@ -333,6 +333,12 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     </div>
 
     <div class="factor">
+      <h3 class="sub">Sweet or side dish <span class="rate" id="rate-side"></span></h3>
+      <div class="one"><select id="side" data-person aria-label="Who made the sweet or side dish"></select></div>
+      <p class="hint" id="hint-side"></p>
+    </div>
+
+    <div class="factor">
       <h3 class="sub">Planned and called everyone <span class="rate" id="rate-plan"></span></h3>
       <div class="one"><select id="planner" data-person aria-label="Who planned the gathering"></select></div>
       <p class="hint" id="hint-plan"></p>
@@ -353,6 +359,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
         <label class="f">Hosting (€)<input type="number" id="r-host" min="0" step="0.5" inputmode="decimal"></label>
         <label class="f">Per lift leg (€)<input type="number" id="r-ride" min="0" step="0.5" inputmode="decimal"></label>
         <label class="f">Main meal (€)<input type="number" id="r-meal" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Sweet or side dish (€)<input type="number" id="r-side" min="0" step="0.5" inputmode="decimal"></label>
         <label class="f">Planning edge (€)<input type="number" id="r-plan" min="0" step="0.5" inputmode="decimal"></label>
         <label class="f">Gathering starter pays extra (€)<input type="number" id="r-init" min="0" step="0.5" inputmode="decimal"></label>
         <label class="f">Small edge up to (€)<input type="number" id="r-capTier1" min="0" step="1" inputmode="decimal"></label>
@@ -414,7 +421,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
 
   /* ---------- Rules ---------- */
   var DEFAULT_RATES = {
-    host: 10, ride: 1.5, meal: 10, plan: 3, init: 10,
+    host: 10, ride: 1.5, meal: 10, side: 5, plan: 3, init: 10,
     capTier1: 10, capTier2: 20, capLow: 2, capMid: 5, capHigh: 10
   };
   var STORE_KEY = "gathering-split-v1";
@@ -445,7 +452,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       example: false, title: "", date: todayISO(), place: "",
       people: people,
       expenses: [{ id: nid("e"), payer: "", shop: "", amount: "" }],
-      hostId: "", rides: [], cooks: ["", "", ""], plannerId: "", initiator: "same", extras: [],
+      hostId: "", rides: [], cooks: ["", "", ""], sideId: "", plannerId: "", initiator: "same", extras: [],
       rates: Object.assign({}, DEFAULT_RATES)
     };
   }
@@ -465,6 +472,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     ];
     s.hostId = id(0);
     s.cooks = [id(1), "", ""];
+    s.sideId = id(4);
     s.plannerId = id(2);
     s.rides = [{ id: nid("r"), passenger: id(4), driver: id(3), pick: true, drop: true }];
     return s;
@@ -525,7 +533,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     // Every adjustment moves money between people, so shares always add up to the total.
     var adj = {};
     ids.forEach(function (id) {
-      adj[id] = { host: 0, meal: 0, drove: 0, plan: 0, lift: 0, cover: 0, items: [] };
+      adj[id] = { host: 0, meal: 0, side: 0, drove: 0, plan: 0, lift: 0, cover: 0, items: [] };
     });
     function spreadOver(amount, excluded) {
       var rest = ids.filter(function (id) { return excluded.indexOf(id) === -1; });
@@ -534,7 +542,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       return rest.length;
     }
 
-    var notes = { host: "", meal: "", plan: "", rides: [] };
+    var notes = { host: "", meal: "", side: "", plan: "", rides: [] };
 
     // Hosting
     if (s.hostId && isIn(s.hostId) && N > 1 && R.host > 0) {
@@ -558,6 +566,14 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
           : cooks.map(nameOf).join(" and ") + " each pay " + money(each) + " less. ") +
           "The " + money(R.meal) + " is shared by the other " + n2 + " (" + money(R.meal / n2) + " each).";
       }
+    }
+
+    // Sweet or side dish: one person, a set amount, shared by everyone else.
+    if (s.sideId && isIn(s.sideId) && N > 1 && R.side > 0) {
+      adj[s.sideId].side -= R.side;
+      var n4 = spreadOver(R.side, [s.sideId]);
+      notes.side = nameOf(s.sideId) + " made the sweet or side dish, so pays " + money(R.side) +
+        " less. Shared by the other " + n4 + " (" + money(R.side / n4) + " each).";
     }
 
     // Lifts: the driver's discount moves straight onto the person they drove.
@@ -596,8 +612,8 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     var share = {}, edge = {}, capAdj = {}, gift = {}, capInfo = {};
     ids.forEach(function (id) {
       var a = adj[id];
-      share[id] = base + a.host + a.meal + a.drove + a.plan + a.lift + a.cover;
-      edge[id] = -(a.host + a.meal + a.drove + a.plan);
+      share[id] = base + a.host + a.meal + a.side + a.drove + a.plan + a.lift + a.cover;
+      edge[id] = -(a.host + a.meal + a.side + a.drove + a.plan);
       capAdj[id] = 0; gift[id] = 0;
     });
 
@@ -796,6 +812,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     ini.add(new Option("Nobody in particular", ""));
     attendees().forEach(function (p) { ini.add(new Option(p.name.trim(), p.id)); });
     ini.value = (iv === "same" || iv === "" || attendees().some(function (p) { return p.id === iv; })) ? iv : "same";
+    fillSelect($("side"), state.sideId, "Nobody made one");
     var cookLabels = ["Choose the cook", "Second cook (optional)", "Third cook (optional)"];
     for (var i = 0; i < 3; i++) fillSelect($("cook-" + i), state.cooks[i], cookLabels[i]);
     state.expenses.forEach(function (e) { var s = $("payer-" + e.id); if (s) fillSelect(s, e.payer, "Who paid?"); });
@@ -812,6 +829,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     $("rate-host").textContent = money(R.host) + " edge";
     $("rate-ride").textContent = money(R.ride) + " per leg, " + money(R.ride * 2) + " both ways";
     $("rate-meal").textContent = money(R.meal) + " split between cooks";
+    $("rate-side").textContent = money(R.side) + " edge, one person";
     $("rate-plan").textContent = money(R.plan) + " edge";
     $("init-label").textContent = "Whose idea was the gathering? They pay " + money(R.init) + " extra";
     $("limit-tiers").innerHTML =
@@ -829,6 +847,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     $("even-line").innerHTML = c.N ? "Split evenly that would be <b>" + money(c.base) + "</b> each, before the edges in step 3." : "";
 
     $("hint-host").textContent = c.notes.host || "Pick the person whose home was used. They pay " + money(R.host) + " less and the rest share it.";
+    $("hint-side").textContent = c.notes.side || "A dessert or side dish someone made. That one person gets " + money(R.side) + " off and the rest share it.";
     $("hint-meal").textContent = c.notes.meal || "Up to three cooks. One cook gets " + money(R.meal) + " off, two get " + money(R.meal / 2) + " each, three get " + money(R.meal / 3) + " each.";
     $("hint-plan").textContent = c.notes.plan || "The person who organised it and messaged everyone gets " + money(R.plan) + " off.";
     $("hint-init").textContent = c.notes.init || "The person pushing for the gathering puts in " + money(R.init) +
@@ -859,6 +878,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       var a = r.adj, chips = [];
       if (a.host) chips.push('<span class="chip edge">Host ' + money(a.host) + "</span>");
       if (a.meal) chips.push('<span class="chip edge">Cooked ' + money(a.meal) + "</span>");
+      if (a.side) chips.push('<span class="chip edge">Sweet/side dish ' + money(a.side) + "</span>");
       if (a.plan) chips.push('<span class="chip edge">Planned ' + money(a.plan) + "</span>");
       a.items.forEach(function (t) {
         chips.push('<span class="chip' + (t.indexOf("Drove") === 0 ? " edge" : "") + '">' + esc(t) + "</span>");
@@ -917,6 +937,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     if (state.plannerId === id) state.plannerId = "";
     if (state.initiator === id) state.initiator = "same";
     state.cooks = state.cooks.map(function (c) { return c === id ? "" : c; });
+    if (state.sideId === id) state.sideId = "";
     state.expenses.forEach(function (x) { if (x.payer === id) x.payer = ""; });
     state.rides.forEach(function (r) { if (r.passenger === id) r.passenger = ""; if (r.driver === id) r.driver = ""; });
     state.extras.forEach(function (x) { if (x.who === id) x.who = ""; });
@@ -986,6 +1007,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
   [0, 1, 2].forEach(function (i) {
     $("cook-" + i).addEventListener("change", function (e) { state.cooks[i] = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
   });
+  $("side").addEventListener("change", function (e) { state.sideId = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
 
   Object.keys(DEFAULT_RATES).forEach(function (k) {
     $("r-" + k).addEventListener("input", function (e) {
@@ -1186,7 +1208,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     y += 12; font("700", 14, FB); text("Total", M, y, P.ink); font("600", 14, FN); text(money(c.total), M + IW, y, P.ink, "right"); y += 22;
 
     // Edges explained
-    var notes = [["Hosting", c.notes.host], ["Main meal", c.notes.meal], ["Planning", c.notes.plan]]
+    var notes = [["Hosting", c.notes.host], ["Main meal", c.notes.meal], ["Sweet or side dish", c.notes.side], ["Planning", c.notes.plan]]
       .concat(c.notes.rides.map(function (n) { return ["Lift", n]; }))
       .concat([["Whose gathering", c.notes.init]])
       .concat(c.notes.cap.map(function (n) { return ["Money back limit", n]; }))
