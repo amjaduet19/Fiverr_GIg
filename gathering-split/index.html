@@ -360,10 +360,16 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     <div class="shares" id="shares"></div>
     <div class="check" id="check"></div>
 
+    <h3 class="sub">Send it to the group</h3>
     <div class="actions">
-      <button class="btn-solid" id="btn-copy" type="button">Copy summary for the group chat</button>
+      <button class="btn-solid" id="btn-pdf" type="button">Download PDF</button>
+      <button class="btn-ghost" id="btn-png" type="button">Download image</button>
+      <button class="btn-ghost" id="btn-share" type="button" hidden>Share PDF…</button>
+      <button class="btn-ghost" id="btn-copy" type="button">Copy as text</button>
+    </div>
+    <span id="copy-status" role="status"></span>
+    <div class="actions">
       <button class="btn-ghost" id="btn-clear" type="button">Clear everything</button>
-      <span id="copy-status" role="status"></span>
     </div>
     <textarea id="copy-fallback" readonly hidden aria-label="Summary text"></textarea>
   </section>
@@ -494,7 +500,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       return rest.length;
     }
 
-    var notes = { host: "", meal: "", plan: "" };
+    var notes = { host: "", meal: "", plan: "", rides: [] };
 
     // Hosting
     if (s.hostId && isIn(s.hostId) && N > 1 && R.host > 0) {
@@ -535,6 +541,9 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       adj[r.passenger].lift += amt;
       adj[r.passenger].items.push("Lift from " + nameOf(r.driver) + " +" + money(amt));
       adj[r.driver].items.push("Drove " + nameOf(r.passenger) + " −" + money(amt));
+      notes.rides.push(nameOf(r.driver) + " gave " + nameOf(r.passenger) + " a " +
+        (legs === 2 ? "pick-up and drop-off" : r.pick ? "pick-up" : "drop-off") + ", so " + money(amt) +
+        " moves from " + nameOf(r.driver) + "'s share to " + nameOf(r.passenger) + "'s.");
     });
 
     // Planning
@@ -828,7 +837,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
   function summaryText() {
     var c = lastCalc || compute(state);
     var lines = [];
-    lines.push((state.title || "Gathering") + (state.date ? " · " + new Date(state.date + "T12:00:00").toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : ""));
+    lines.push((state.title || "Gathering") + (state.date ? " · " + fmtDate(state.date) : ""));
     if (state.place) lines.push(state.place);
     lines.push("");
     lines.push("Total spent: " + money(c.total) + " · " + c.N + " people");
@@ -866,8 +875,263 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     } catch (err) { fallback(); }
   });
 
+  function fmtDate(iso) {
+    var d = new Date(iso + "T12:00:00");
+    return isNaN(d) ? iso : d.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  }
+
+  /* ---------- Shareable summary: drawn on a canvas, saved as PNG or PDF ---------- */
+  // Fixed light palette so the file looks the same for everyone in the group chat.
+  var P = {
+    bg: "#FFFFFF", band: "#1D6A50", bandInk: "#FFFFFF", bandSoft: "#CDE8DB", ink: "#15201C", muted: "#5A6A63",
+    line: "#D3DDD8", soft: "#EEF3F0", accent: "#1D6A50", accentSoft: "#DAEAE2", edge: "#8F5600", owe: "#A8261E", oweSoft: "#F7DDDA"
+  };
+  var FD = '"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif';
+  var FB = 'Figtree, "Segoe UI", system-ui, -apple-system, sans-serif';
+  var FN = '"IBM Plex Mono", ui-monospace, Menlo, monospace';
+  var IMG_W = 600;
+
+  function paintSummary(ctx, c, draw) {
+    var W = IMG_W, M = 28, IW = W - 2 * M, y = 0;
+    function font(w, s, f) { ctx.font = w + " " + s + "px " + f; }
+    function text(t, x, yy, color, align) {
+      if (!draw) return;
+      ctx.fillStyle = color; ctx.textAlign = align || "left"; ctx.fillText(t, x, yy);
+    }
+    function fit(t, max) {
+      if (ctx.measureText(t).width <= max) return t;
+      while (t.length > 1 && ctx.measureText(t + "…").width > max) t = t.slice(0, -1);
+      return t + "…";
+    }
+    function wrap(t, max) {
+      var words = String(t).split(/\s+/), lines = [], cur = "";
+      words.forEach(function (w) {
+        var next = cur ? cur + " " + w : w;
+        if (cur && ctx.measureText(next).width > max) { lines.push(cur); cur = w; } else cur = next;
+      });
+      if (cur) lines.push(cur);
+      return lines.length ? lines : [""];
+    }
+    function box(x, yy, w, h, color, r) {
+      if (!draw) return;
+      ctx.fillStyle = color; ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, yy, w, h, r || 0); else ctx.rect(x, yy, w, h);
+      ctx.fill();
+    }
+    function heading(t) {
+      y += 26; font("700", 11, FB); text(t.toUpperCase().split("").join(String.fromCharCode(8202)), M, y, P.muted); y += 22;
+    }
+
+    // Header band
+    font("800", 28, FD);
+    var titleLines = wrap(state.title || "Gathering", IW);
+    var meta = [state.date ? fmtDate(state.date) : "", state.place].filter(Boolean).join("  ·  ");
+    var bandH = 24 + 20 + titleLines.length * 32 + (meta ? 26 : 0) + 22;
+    box(0, 0, W, bandH, P.band, 0);
+    y = 24; font("700", 11, FB); text("GATHERING SPLIT", M, y, P.bandSoft); y += 20;
+    font("800", 28, FD);
+    titleLines.forEach(function (l) { text(l, M, y, P.bandInk); y += 32; });
+    if (meta) { y += 4; font("500", 14, FB); text(fit(meta, IW), M, y, P.bandSoft); y += 22; }
+    y = bandH;
+
+    // Figures
+    y += 20;
+    var fw = (IW - 20) / 3;
+    [["Total spent", money(c.total)], ["People", String(c.N)], ["Even split", money(c.base)]].forEach(function (f, i) {
+      var x = M + i * (fw + 10);
+      box(x, y, fw, 62, P.soft, 8);
+      font("600", 11, FB); text(f[0], x + 12, y + 12, P.muted);
+      font("600", 19, FN); text(f[1], x + 12, y + 30, P.ink);
+    });
+    y += 62;
+
+    // Who sends what
+    heading("Who sends what");
+    if (!c.transfers.length) {
+      box(M, y, IW, 40, P.soft, 8); font("500", 14, FB);
+      text(c.total ? "Everyone is square. No money needs to move." : "Nothing spent yet.", M + 14, y + 12, P.muted); y += 40;
+    }
+    c.transfers.forEach(function (t, i) {
+      if (i) y += 8;
+      box(M, y, IW, 44, P.accentSoft, 8);
+      font("600", 16, FN); var amt = money(t.amt); var aw = ctx.measureText(amt).width;
+      text(amt, M + IW - 14, y + 14, P.ink, "right");
+      var avail = IW - 28 - aw - 16;
+      font("700", 15, FB); var from = fit(t.from, avail * 0.42); var fwid = ctx.measureText(from).width;
+      text(from, M + 14, y + 14, P.ink);
+      font("600", 13, FB); text("sends →", M + 14 + fwid + 8, y + 16, P.accent); var sw = ctx.measureText("sends →").width;
+      font("700", 15, FB); text(fit(t.to, avail - fwid - sw - 16), M + 14 + fwid + sw + 16, y + 14, P.ink);
+      y += 44;
+    });
+
+    // Each person
+    heading("Each person");
+    c.rows.forEach(function (r, i) {
+      if (i && draw) { ctx.fillStyle = P.line; ctx.fillRect(M, y, IW, 1); }
+      var b = round2(r.balance);
+      var label = b > 0.004 ? "Gets back " + money(b) : b < -0.004 ? "Owes " + money(-b) : "Square";
+      var col = b > 0.004 ? P.accent : b < -0.004 ? P.owe : P.muted;
+      var bg = b > 0.004 ? P.accentSoft : b < -0.004 ? P.oweSoft : P.soft;
+      font("700", 13, FB); var pw = ctx.measureText(label).width + 20;
+      box(M + IW - pw, y + 10, pw, 26, bg, 13);
+      text(label, M + IW - 10, y + 16, col, "right");
+      font("700", 15, FB); text(fit(r.name, IW - pw - 16), M, y + 12, P.ink);
+      font("500", 12, FB);
+      text("Share " + money(r.share) + "   ·   Paid " + money(r.paid), M + IW, y + 42, P.muted, "right");
+      if (r.edge > 0.004) { font("700", 12, FB); text("Edge: " + money(r.edge) + " less", M, y + 34, P.edge); }
+      y += 62;
+    });
+
+    // Receipts
+    heading("Receipts");
+    var anyReceipt = false;
+    state.expenses.forEach(function (e) {
+      var a = num(e.amount); if (!a) return;
+      anyReceipt = true;
+      font("500", 13, FN); var am = money(a); text(am, M + IW, y, P.ink, "right"); var aw = ctx.measureText(am).width;
+      font("500", 13, FB); text(fit((nameOf(e.payer) || "Someone") + "  ·  " + (e.shop || "Shop"), IW - aw - 16), M, y, P.ink);
+      y += 24;
+    });
+    if (!anyReceipt) { font("500", 13, FB); text("No receipts added.", M, y, P.muted); y += 24; }
+    if (draw) { ctx.fillStyle = P.ink; ctx.fillRect(M, y + 2, IW, 2); }
+    y += 12; font("700", 14, FB); text("Total", M, y, P.ink); font("600", 14, FN); text(money(c.total), M + IW, y, P.ink, "right"); y += 22;
+
+    // Edges explained
+    var notes = [["Hosting", c.notes.host], ["Main meal", c.notes.meal], ["Planning", c.notes.plan]]
+      .concat(c.notes.rides.map(function (n) { return ["Lift", n]; }))
+      .filter(function (n) { return n[1]; })
+      .map(function (n) { return n[0] + ": " + n[1]; });
+    if (notes.length) {
+      heading("Edges");
+      font("500", 13, FB);
+      notes.forEach(function (n) {
+        wrap(n, IW - 14).forEach(function (l, i) {
+          if (i === 0 && draw) { ctx.fillStyle = P.edge; ctx.fillRect(M, y + 6, 5, 5); }
+          text(l, M + 14, y, P.ink); y += 19;
+        });
+        y += 4;
+      });
+    }
+
+    y += 18; font("500", 11, FB);
+    text("Shares add up to " + money(c.rows.reduce(function (s, r) { return s + r.share; }, 0)) + ", the total spent.", M, y, P.muted);
+    y += 34;
+    return Math.ceil(y);
+  }
+
+  function renderCanvas() {
+    var c = compute(state);
+    var m = document.createElement("canvas").getContext("2d");
+    m.textBaseline = "top";
+    var h = paintSummary(m, c, false);
+    var S = 2, cv = document.createElement("canvas");
+    cv.width = IMG_W * S; cv.height = h * S;
+    var ctx = cv.getContext("2d");
+    ctx.scale(S, S); ctx.textBaseline = "top";
+    ctx.fillStyle = P.bg; ctx.fillRect(0, 0, IMG_W, h);
+    paintSummary(ctx, c, true);
+    return cv;
+  }
+
+  function canvasBlob(cv, type, q) {
+    return new Promise(function (res, rej) { cv.toBlob(function (b) { b ? res(b) : rej(new Error("toBlob failed")); }, type, q); });
+  }
+
+  // A one-page PDF holding the summary as a JPEG, sized to A4 width.
+  function jpegToPdf(jpg, pxW, pxH) {
+    var enc = new TextEncoder(), parts = [], offsets = [], len = 0;
+    function push(x) { var b = typeof x === "string" ? enc.encode(x) : x; parts.push(b); len += b.length; }
+    function obj(n, body) { offsets[n] = len; push(n + " 0 obj\n"); body(); push("\nendobj\n"); }
+    var W = 595.28, H = Math.round(W * pxH / pxW * 100) / 100;
+    push("%PDF-1.4\n"); push(new Uint8Array([0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]));
+    obj(1, function () { push("<< /Type /Catalog /Pages 2 0 R >>"); });
+    obj(2, function () { push("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"); });
+    obj(3, function () { push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + W + " " + H + "] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>"); });
+    obj(4, function () {
+      push("<< /Type /XObject /Subtype /Image /Width " + pxW + " /Height " + pxH + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpg.length + " >>\nstream\n");
+      push(jpg); push("\nendstream");
+    });
+    var content = "q " + W + " 0 0 " + H + " 0 0 cm /Im0 Do Q";
+    obj(5, function () { push("<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream"); });
+    var xref = len, x = "xref\n0 6\n0000000000 65535 f \n";
+    for (var i = 1; i <= 5; i++) x += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
+    push(x + "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n");
+    return new Blob(parts, { type: "application/pdf" });
+  }
+
+  function fileBase() {
+    var slug = (state.title || "gathering").toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "gathering";
+    return slug + (state.date ? "-" + state.date : "");
+  }
+
+  async function makeFile(kind) {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) { /* use fallbacks */ }
+    var cv = renderCanvas();
+    if (kind === "png") return { blob: await canvasBlob(cv, "image/png"), name: fileBase() + ".png" };
+    var jpg = new Uint8Array(await (await canvasBlob(cv, "image/jpeg", 0.92)).arrayBuffer());
+    return { blob: jpegToPdf(jpg, cv.width, cv.height), name: fileBase() + ".pdf" };
+  }
+
+  var statusTimer = null;
+  function flash(msg) {
+    var el = $("copy-status");
+    el.textContent = msg;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () { el.textContent = ""; }, 5000);
+  }
+
+  // Inside Claude the viewer's save prompt handles the file; opened as a plain file, the browser downloads it.
+  var inClaude = !!(window.claude && typeof window.claude.use === "function");
+
+  async function saveFile(kind, btn) {
+    btn.disabled = true;
+    try {
+      var f = await makeFile(kind);
+      if (inClaude) {
+        var dl = null;
+        try { dl = await window.claude.use("downloads"); } catch (e) { dl = null; }
+        if (!dl) { flash("Saving files isn't available here. Use Copy as text instead."); return; }
+        try {
+          await dl.save({ filename: f.name, data: f.blob });
+          flash("Saved " + f.name + ". Send it in the group chat.");
+        } catch (err) {
+          var code = err && err.code;
+          flash(code === "declined" ? "Save cancelled." : code === "rate_limited" ? "A save is already open. Try again in a moment." : "Saving files isn't available here. Use Copy as text instead.");
+        }
+        return;
+      }
+      var url = URL.createObjectURL(f.blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+      flash("Downloaded " + f.name + ".");
+    } catch (err) {
+      flash("Couldn't make the file. Try Copy as text instead.");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  $("btn-pdf").addEventListener("click", function (e) { saveFile("pdf", e.currentTarget); });
+  $("btn-png").addEventListener("click", function (e) { saveFile("png", e.currentTarget); });
+
+  // Phones opening the plain file get a share sheet (WhatsApp, etc.).
+  try {
+    var probe = new File(["x"], "x.pdf", { type: "application/pdf" });
+    if (!inClaude && navigator.canShare && navigator.canShare({ files: [probe] })) $("btn-share").hidden = false;
+  } catch (e) { /* no file sharing */ }
+  $("btn-share").addEventListener("click", async function (e) {
+    var btn = e.currentTarget; btn.disabled = true;
+    try {
+      var f = await makeFile("pdf");
+      await navigator.share({ files: [new File([f.blob], f.name, { type: "application/pdf" })], title: state.title || "Gathering split" });
+    } catch (err) {
+      if (!err || err.name !== "AbortError") flash("Sharing didn't work here. Use Download PDF instead.");
+    } finally { btn.disabled = false; }
+  });
+
   // Exposed for testing in the console.
-  window.__gatheringSplit = { compute: compute, exampleState: exampleState };
+  window.__gatheringSplit = { compute: compute, exampleState: exampleState, makeFile: makeFile };
 
   renderAll();
 })();
