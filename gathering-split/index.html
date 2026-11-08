@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gathering Split</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one narrow column of four numbered steps (who came → what was spent → who chipped in → the split), results last. */
+:root {
+  --bg: #EDF2EF;
+  --surface: #FFFFFF;
+  --field: #F6F9F7;
+  --ink: #15201C;
+  --muted: #5A6A63;
+  --line: #D3DDD8;
+  --accent: #1D6A50;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DAEAE2;
+  --edge: #8F5600;
+  --edge-soft: #F5E5C8;
+  --owe: #A8261E;
+  --owe-soft: #F7DDDA;
+  --warn: #8A5A00;
+  --warn-soft: #FBF0D9;
+
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1412; --surface: #161F1B; --field: #1C2722; --ink: #E5EDE9; --muted: #92A39C;
+    --line: #2A3832; --accent: #5BC39A; --accent-ink: #0A1310; --accent-soft: #1B392E;
+    --edge: #E8B65E; --edge-soft: #3A2C13; --owe: #F1897F; --owe-soft: #3C1C19;
+    --warn: #E8B65E; --warn-soft: #33280F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1412; --surface: #161F1B; --field: #1C2722; --ink: #E5EDE9; --muted: #92A39C;
+  --line: #2A3832; --accent: #5BC39A; --accent-ink: #0A1310; --accent-soft: #1B392E;
+  --edge: #E8B65E; --edge-soft: #3A2C13; --owe: #F1897F; --owe-soft: #3C1C19;
+  --warn: #E8B65E; --warn-soft: #33280F;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* ---------- Header ---------- */
+header.top { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
+.eyebrow { font: 600 12px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+#g-title {
+  font: 800 clamp(28px, 6vw, 44px)/1.05 var(--f-display);
+  letter-spacing: -.02em;
+  border: 0; border-bottom: 2px dashed var(--line); border-radius: 0;
+  background: transparent; color: var(--ink); padding: 4px 0 8px; width: 100%;
+}
+#g-title:focus { outline: none; border-bottom-color: var(--accent); }
+#g-title::placeholder { color: var(--muted); opacity: .6; }
+.meta { display: grid; grid-template-columns: 180px 1fr; gap: 10px; }
+@media (max-width: 520px) { .meta { grid-template-columns: 1fr; } }
+
+.example-note {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  background: var(--edge-soft); color: var(--ink);
+  border-radius: var(--r); padding: 10px 14px; font-size: 14px;
+}
+.example-note strong { color: var(--edge); }
+
+/* ---------- Steps ---------- */
+section.step {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px; display: flex; flex-direction: column; gap: 14px;
+}
+@media (max-width: 520px) { section.step { padding: 16px 14px; } }
+.step-head { display: flex; align-items: baseline; gap: 12px; }
+.step-no {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink);
+  font: 700 14px/1 var(--f-num);
+  transform: translateY(4px);
+}
+.step-head h2 { margin: 0; font: 700 22px/1.2 var(--f-display); letter-spacing: -.01em; text-wrap: balance; }
+.step-head p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.step-head > div { min-width: 0; }
+
+h3.sub {
+  margin: 6px 0 0; font: 700 13px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+h3.sub .rate { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--edge); }
+
+/* ---------- Form controls ---------- */
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; min-width: 0; }
+input[type="text"], input[type="date"], input[type="number"], select {
+  font: 500 15px/1.2 var(--f-body); color: var(--ink);
+  background: var(--field); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 11px; width: 100%; min-width: 0; min-height: 42px;
+}
+input[type="number"] { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+select:invalid, select.empty { color: var(--muted); }
+
+button { font: 600 14px/1 var(--f-body); cursor: pointer; border-radius: 8px; }
+.btn-add {
+  align-self: flex-start; border: 1px dashed var(--accent); color: var(--accent);
+  background: transparent; padding: 10px 14px; min-height: 40px;
+}
+.btn-add:hover { background: var(--accent-soft); }
+.btn-x {
+  flex: none; width: 40px; height: 42px; border: 1px solid var(--line); background: transparent;
+  color: var(--muted); font-size: 20px; line-height: 1;
+}
+.btn-x:hover { color: var(--owe); border-color: var(--owe); }
+.btn-solid { background: var(--accent); color: var(--accent-ink); border: 0; padding: 11px 16px; min-height: 42px; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 10px 14px; min-height: 40px; }
+.btn-ghost.armed { border-color: var(--owe); color: var(--owe); background: var(--owe-soft); }
+
+/* People */
+.people { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+@media (max-width: 560px) { .people { grid-template-columns: 1fr; } }
+.person-row { display: flex; align-items: center; gap: 8px; }
+.person-row .idx { flex: none; width: 22px; text-align: right; font: 500 13px/1 var(--f-num); color: var(--muted); }
+.count-line { font-size: 14px; color: var(--muted); }
+.count-line b { color: var(--ink); }
+
+/* Expenses */
+.exp-head, .exp-row { display: grid; grid-template-columns: 1.1fr 1.3fr 120px 40px; gap: 8px; align-items: center; }
+.exp-head { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; padding: 0 2px; }
+.exp-list { display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 560px) {
+  .exp-head { display: none; }
+  .exp-row { grid-template-columns: 1fr 110px 40px; grid-template-areas: "who who x" "shop amt x"; padding: 10px; border: 1px solid var(--line); border-radius: var(--r); }
+  .exp-row .c-who { grid-area: who; } .exp-row .c-shop { grid-area: shop; } .exp-row .c-amt { grid-area: amt; } .exp-row .btn-x { grid-area: x; align-self: stretch; height: auto; }
+}
+.total-bar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 20px;
+  border-top: 2px solid var(--ink); padding-top: 12px;
+}
+.total-bar .lbl { font-weight: 700; font-size: 15px; }
+.total-bar .big { font: 600 26px/1 var(--f-num); font-variant-numeric: tabular-nums; }
+.total-bar .even { flex-basis: 100%; color: var(--muted); font-size: 14px; }
+.total-bar .even b { font-family: var(--f-num); color: var(--ink); font-weight: 600; }
+
+/* Factors */
+.factor { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.factor:first-of-type { border-top: 0; padding-top: 0; }
+.factor .hint { margin: 0; font-size: 13.5px; color: var(--muted); max-width: 64ch; }
+.factor .hint b { color: var(--edge); font-weight: 600; }
+.cooks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .cooks { grid-template-columns: 1fr; } }
+.one { max-width: 360px; }
+
+.ride-list { display: flex; flex-direction: column; gap: 8px; }
+.ride-row {
+  display: grid; grid-template-columns: 1fr auto 1fr 40px; gap: 8px; align-items: end;
+  padding: 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--field);
+}
+.ride-row select, .ride-row input { background: var(--surface); }
+.legs { display: flex; gap: 6px; padding-bottom: 1px; }
+.leg {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; min-height: 42px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  font-size: 13.5px; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap;
+}
+.leg input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
+.leg:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+@media (max-width: 600px) {
+  .ride-row { grid-template-columns: 1fr 40px; grid-template-areas: "p x" "l x" "d x"; }
+  .ride-row .c-p { grid-area: p; } .ride-row .legs { grid-area: l; } .ride-row .c-d { grid-area: d; }
+  .ride-row .btn-x { grid-area: x; align-self: stretch; height: auto; }
+}
+.ride-empty { font-size: 14px; color: var(--muted); padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r); }
+
+details.rates { border: 1px solid var(--line); border-radius: var(--r); padding: 0 14px; }
+details.rates summary { cursor: pointer; padding: 12px 0; font-weight: 600; font-size: 14px; color: var(--muted); }
+details.rates[open] summary { color: var(--ink); }
+.rate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-bottom: 14px; }
+@media (max-width: 560px) { .rate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Results ---------- */
+.warns { display: flex; flex-direction: column; gap: 6px; }
+.warns:empty { display: none; }
+.warn { background: var(--warn-soft); color: var(--ink); border-left: 3px solid var(--warn); border-radius: 6px; padding: 8px 12px; font-size: 14px; }
+
+.figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .figures { grid-template-columns: 1fr 1fr; } .figures .fig:first-child { grid-column: 1 / -1; } }
+.fig { background: var(--field); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fig .k { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.fig .v { font: 600 22px/1.1 var(--f-num); font-variant-numeric: tabular-nums; }
+
+.transfers { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.transfer {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 12px 14px; border-radius: var(--r); background: var(--accent-soft);
+}
+.transfer .from, .transfer .to { font-weight: 700; overflow-wrap: anywhere; }
+.transfer .to { text-align: left; }
+.transfer .arrow { color: var(--accent); font: 600 13px/1 var(--f-body); white-space: nowrap; }
+.transfer .amt { font: 600 18px/1 var(--f-num); font-variant-numeric: tabular-nums; }
+.square { padding: 12px 14px; border-radius: var(--r); background: var(--field); color: var(--muted); }
+
+.shares { display: flex; flex-direction: column; }
+.share {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: start;
+  padding: 14px 0; border-top: 1px solid var(--line);
+}
+.share:first-child { border-top: 0; }
+.share .who { font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.chip { font-size: 12.5px; font-weight: 600; padding: 3px 8px; border-radius: 99px; background: var(--field); color: var(--muted); white-space: nowrap; }
+.chip.edge { background: var(--edge-soft); color: var(--edge); }
+.chip.num { font-family: var(--f-num); }
+.edge-line { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--edge); }
+.share .nums { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.share .line { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.share .line b { font: 600 14px/1 var(--f-num); color: var(--ink); font-variant-numeric: tabular-nums; }
+.pill { font: 700 14px/1 var(--f-body); padding: 7px 10px; border-radius: 99px; white-space: nowrap; }
+.pill span { font-family: var(--f-num); }
+.pill.get { background: var(--accent-soft); color: var(--accent); }
+.pill.owe { background: var(--owe-soft); color: var(--owe); }
+.pill.even { background: var(--field); color: var(--muted); }
+.check { font-size: 13px; color: var(--muted); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#copy-status { font-size: 13px; color: var(--accent); font-weight: 600; }
+#copy-fallback { width: 100%; min-height: 160px; font: 13px/1.5 var(--f-num); padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--ink); }
+
+footer { color: var(--muted); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .pill, .transfer { transition: background-color .2s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <span class="eyebrow">Gathering tab</span>
+    <input id="g-title" type="text" placeholder="Name this gathering" aria-label="Gathering name" autocomplete="off">
+    <div class="meta">
+      <label class="f">Date<input id="g-date" type="date"></label>
+      <label class="f">Place<input id="g-place" type="text" placeholder="e.g. Amjad's place, Dublin" autocomplete="off"></label>
+    </div>
+  </header>
+
+  <div class="example-note" id="example-note" hidden>
+    <span><strong>Example gathering.</strong> These names and amounts are made up to show how the split works.</span>
+    <button class="btn-solid" id="btn-fresh" type="button">Start a new gathering</button>
+  </div>
+
+  <!-- Step 1 -->
+  <section class="step" aria-labelledby="h-people">
+    <div class="step-head">
+      <span class="step-no">1</span>
+      <div><h2 id="h-people">Who came</h2><p>Type each person once. Their names fill every drop-down below.</p></div>
+    </div>
+    <div class="people" id="people"></div>
+    <button class="btn-add" id="add-person" type="button">+ Add another person</button>
+    <div class="count-line" id="count-line"></div>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="step" aria-labelledby="h-exp">
+    <div class="step-head">
+      <span class="step-no">2</span>
+      <div><h2 id="h-exp">What was spent</h2><p>One line per receipt: who paid, the shop, and how much.</p></div>
+    </div>
+    <div class="exp-head" aria-hidden="true"><span>Who paid</span><span>Shop</span><span>Amount (€)</span><span></span></div>
+    <div class="exp-list" id="expenses"></div>
+    <button class="btn-add" id="add-expense" type="button">+ Add another receipt</button>
+    <div class="total-bar">
+      <span class="lbl">Total spent</span>
+      <span class="big" id="total">€0.00</span>
+      <span class="even" id="even-line"></span>
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="step" aria-labelledby="h-factors">
+    <div class="step-head">
+      <span class="step-no">3</span>
+      <div><h2 id="h-factors">Who chipped in</h2><p>Hosting, driving, cooking and planning earn an edge. The others cover it between them.</p></div>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Hosted at <span class="rate" id="rate-host"></span></h3>
+      <div class="one"><select id="host" data-person aria-label="Whose place was used"></select></div>
+      <p class="hint" id="hint-host"></p>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Lifts given <span class="rate" id="rate-ride"></span></h3>
+      <p class="hint">Only add people who got a lift. Anyone who came by bus or on their own needs no entry. Tick <b>Pick-up</b>, <b>Drop-off</b> or both.</p>
+      <div class="ride-list" id="rides"></div>
+      <button class="btn-add" id="add-ride" type="button">+ Add a lift</button>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Cooked the main meal <span class="rate" id="rate-meal"></span></h3>
+      <div class="cooks">
+        <select id="cook-0" data-person data-cook="0" aria-label="Cook 1"></select>
+        <select id="cook-1" data-person data-cook="1" aria-label="Cook 2"></select>
+        <select id="cook-2" data-person data-cook="2" aria-label="Cook 3"></select>
+      </div>
+      <p class="hint" id="hint-meal"></p>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Planned and called everyone <span class="rate" id="rate-plan"></span></h3>
+      <div class="one"><select id="planner" data-person aria-label="Who planned the gathering"></select></div>
+      <p class="hint" id="hint-plan"></p>
+    </div>
+
+    <details class="rates" id="rates-box">
+      <summary>Change the amounts</summary>
+      <div class="rate-grid">
+        <label class="f">Hosting (€)<input type="number" id="r-host" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Per lift leg (€)<input type="number" id="r-ride" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Main meal (€)<input type="number" id="r-meal" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Planning, big group (€)<input type="number" id="r-planBig" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Planning, small group (€)<input type="number" id="r-planSmall" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Big group from (people)<input type="number" id="r-planMin" min="1" step="1" inputmode="numeric"></label>
+      </div>
+    </details>
+  </section>
+
+  <!-- Step 4 -->
+  <section class="step" aria-labelledby="h-split">
+    <div class="step-head">
+      <span class="step-no">4</span>
+      <div><h2 id="h-split">The split</h2><p>Each person's fair share after the edges, and who sends money to whom.</p></div>
+    </div>
+    <div class="warns" id="warns"></div>
+    <div class="figures" id="figures"></div>
+
+    <h3 class="sub">Who sends what</h3>
+    <ul class="transfers" id="transfers"></ul>
+
+    <h3 class="sub">Each person</h3>
+    <div class="shares" id="shares"></div>
+    <div class="check" id="check"></div>
+
+    <div class="actions">
+      <button class="btn-solid" id="btn-copy" type="button">Copy summary for the group chat</button>
+      <button class="btn-ghost" id="btn-clear" type="button">Clear everything</button>
+      <span id="copy-status" role="status"></span>
+    </div>
+    <textarea id="copy-fallback" readonly hidden aria-label="Summary text"></textarea>
+  </section>
+
+  <footer>Saved on this device as you type.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Rules ---------- */
+  var DEFAULT_RATES = { host: 10, ride: 1.5, meal: 10, planBig: 5, planSmall: 3, planMin: 5 };
+  var STORE_KEY = "gathering-split-v1";
+  var MIN_SLOTS = 8;
+
+  var eur = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
+  function money(n) { return eur.format(Math.abs(n) < 0.005 ? 0 : n); }
+  function num(v) { var n = parseFloat(String(v).replace(",", ".")); return isFinite(n) ? n : 0; }
+  function round2(n) { return Math.round(n * 100) / 100; }
+
+  var seq = 0;
+  function nid(p) { seq += 1; return p + Date.now().toString(36) + seq; }
+  function todayISO() {
+    var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ---------- State ---------- */
+  function blankState() {
+    var people = [];
+    for (var i = 0; i < MIN_SLOTS; i++) people.push({ id: nid("p"), name: "" });
+    return {
+      example: false, title: "", date: todayISO(), place: "",
+      people: people,
+      expenses: [{ id: nid("e"), payer: "", shop: "", amount: "" }],
+      hostId: "", rides: [], cooks: ["", "", ""], plannerId: "",
+      rates: Object.assign({}, DEFAULT_RATES)
+    };
+  }
+
+  function exampleState() {
+    var s = blankState();
+    var names = ["Amjad Ali", "Bilal", "Usman", "Hamza", "Zain"];
+    names.forEach(function (n, i) { s.people[i].name = n; });
+    var id = function (i) { return s.people[i].id; };
+    s.example = true;
+    s.title = "Saturday dinner at Amjad's";
+    s.place = "Amjad's place, Dublin";
+    s.expenses = [
+      { id: nid("e"), payer: id(0), shop: "Tesco", amount: "46.50" },
+      { id: nid("e"), payer: id(1), shop: "Lidl", amount: "28.00" },
+      { id: nid("e"), payer: id(2), shop: "Spar (drinks)", amount: "25.50" }
+    ];
+    s.hostId = id(0);
+    s.cooks = [id(1), "", ""];
+    s.plannerId = id(2);
+    s.rides = [{ id: nid("r"), passenger: id(4), driver: id(3), pick: true, drop: true }];
+    return s;
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && Array.isArray(s.people)) {
+          s.rates = Object.assign({}, DEFAULT_RATES, s.rates || {});
+          s.cooks = (s.cooks || []).concat(["", "", ""]).slice(0, 3);
+          s.rides = s.rides || []; s.expenses = s.expenses || [];
+          return s;
+        }
+      }
+    } catch (e) { /* storage unavailable */ }
+    return exampleState();
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  }
+
+  var state = load();
+
+  function attendees() {
+    return state.people.filter(function (p) { return p.name.trim() !== ""; });
+  }
+  function nameOf(id) {
+    var p = state.people.find(function (x) { return x.id === id; });
+    return p && p.name.trim() ? p.name.trim() : "";
+  }
+
+  /* ---------- The calculation ---------- */
+  function compute(s) {
+    var people = s.people.filter(function (p) { return p.name.trim() !== ""; });
+    var ids = people.map(function (p) { return p.id; });
+    var isIn = function (id) { return ids.indexOf(id) !== -1; };
+    var N = people.length;
+    var R = s.rates;
+    var warns = [];
+
+    var total = 0;
+    var paid = {};
+    ids.forEach(function (id) { paid[id] = 0; });
+    s.expenses.forEach(function (e, i) {
+      var a = num(e.amount);
+      if (a === 0) return;
+      total += a;
+      if (!e.payer || !isIn(e.payer)) {
+        warns.push("Receipt " + (i + 1) + (e.shop ? " (" + e.shop + ")" : "") + " needs a name in “Who paid”.");
+      } else {
+        paid[e.payer] += a;
+      }
+    });
+
+    // Every adjustment moves money between people, so shares always add up to the total.
+    var adj = {};
+    ids.forEach(function (id) {
+      adj[id] = { host: 0, meal: 0, drove: 0, plan: 0, lift: 0, cover: 0, items: [] };
+    });
+    function spreadOver(amount, excluded) {
+      var rest = ids.filter(function (id) { return excluded.indexOf(id) === -1; });
+      if (!rest.length) return false;
+      rest.forEach(function (id) { adj[id].cover += amount / rest.length; });
+      return rest.length;
+    }
+
+    var notes = { host: "", meal: "", plan: "" };
+
+    // Hosting
+    if (s.hostId && isIn(s.hostId) && N > 1 && R.host > 0) {
+      adj[s.hostId].host -= R.host;
+      var n1 = spreadOver(R.host, [s.hostId]);
+      notes.host = nameOf(s.hostId) + " pays " + money(R.host) + " less. That " + money(R.host) +
+        " is shared by the other " + n1 + " (" + money(R.host / n1) + " each).";
+    }
+
+    // Main meal
+    var cooks = [];
+    s.cooks.forEach(function (c) { if (c && isIn(c) && cooks.indexOf(c) === -1) cooks.push(c); });
+    if (cooks.length && R.meal > 0) {
+      if (cooks.length >= N) {
+        warns.push("Everyone is listed as a cook, so nobody is left to cover the meal edge. It has been skipped.");
+      } else {
+        var each = R.meal / cooks.length;
+        cooks.forEach(function (c) { adj[c].meal -= each; });
+        var n2 = spreadOver(R.meal, cooks);
+        notes.meal = (cooks.length === 1 ? nameOf(cooks[0]) + " pays " + money(each) + " less. "
+          : cooks.map(nameOf).join(" and ") + " each pay " + money(each) + " less. ") +
+          "The " + money(R.meal) + " is shared by the other " + n2 + " (" + money(R.meal / n2) + " each).";
+      }
+    }
+
+    // Lifts: the driver's discount moves straight onto the person they drove.
+    s.rides.forEach(function (r, i) {
+      var legs = (r.pick ? 1 : 0) + (r.drop ? 1 : 0);
+      if (!r.passenger && !r.driver) return;
+      if (!r.passenger || !r.driver || !isIn(r.passenger) || !isIn(r.driver)) {
+        warns.push("Lift " + (i + 1) + " needs both the person who got the lift and the driver.");
+        return;
+      }
+      if (r.passenger === r.driver) { warns.push("Lift " + (i + 1) + ": the driver and passenger are the same person."); return; }
+      if (!legs) { warns.push("Lift " + (i + 1) + ": tick Pick-up, Drop-off or both."); return; }
+      var amt = legs * R.ride;
+      adj[r.driver].drove -= amt;
+      adj[r.passenger].lift += amt;
+      adj[r.passenger].items.push("Lift from " + nameOf(r.driver) + " +" + money(amt));
+      adj[r.driver].items.push("Drove " + nameOf(r.passenger) + " −" + money(amt));
+    });
+
+    // Planning
+    var planAmt = 0;
+    if (s.plannerId && isIn(s.plannerId) && N > 1) {
+      planAmt = N >= R.planMin ? R.planBig : R.planSmall;
+      if (planAmt > 0) {
+        adj[s.plannerId].plan -= planAmt;
+        var n3 = spreadOver(planAmt, [s.plannerId]);
+        notes.plan = nameOf(s.plannerId) + " brought " + N + " people together, so pays " + money(planAmt) +
+          " less" + (N >= R.planMin ? "" : " (" + money(R.planBig) + " needs " + R.planMin + "+ people)") +
+          ". Shared by the other " + n3 + " (" + money(planAmt / n3) + " each).";
+      }
+    }
+
+    var base = N ? total / N : 0;
+    var rows = people.map(function (p) {
+      var a = adj[p.id];
+      var share = base + a.host + a.meal + a.drove + a.plan + a.lift + a.cover;
+      var edge = -(a.host + a.meal + a.drove + a.plan);
+      if (share < -0.005) warns.push(p.name.trim() + "'s edges are bigger than their share, so they come out ahead even before paying anything.");
+      return { id: p.id, name: p.name.trim(), adj: a, share: share, paid: paid[p.id], balance: paid[p.id] - share, edge: edge };
+    });
+
+    // Settle up: largest debtor pays largest creditor until everyone is square.
+    var cred = [], debt = [];
+    rows.forEach(function (r) {
+      var b = round2(r.balance);
+      if (b > 0.004) cred.push({ name: r.name, amt: b });
+      else if (b < -0.004) debt.push({ name: r.name, amt: -b });
+    });
+    cred.sort(function (a, b) { return b.amt - a.amt; });
+    debt.sort(function (a, b) { return b.amt - a.amt; });
+    var transfers = [];
+    var ci = 0, di = 0;
+    while (ci < cred.length && di < debt.length) {
+      var x = round2(Math.min(cred[ci].amt, debt[di].amt));
+      if (x >= 0.01) transfers.push({ from: debt[di].name, to: cred[ci].name, amt: x });
+      cred[ci].amt = round2(cred[ci].amt - x);
+      debt[di].amt = round2(debt[di].amt - x);
+      if (cred[ci].amt < 0.01) ci++;
+      if (debt[di].amt < 0.01) di++;
+    }
+
+    return { N: N, total: total, base: base, rows: rows, transfers: transfers, warns: warns, notes: notes, planAmt: planAmt };
+  }
+
+  /* ---------- Rendering ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+
+  function fillSelect(sel, value, placeholder) {
+    var list = attendees();
+    sel.innerHTML = "";
+    sel.add(new Option(placeholder, ""));
+    list.forEach(function (p) { sel.add(new Option(p.name.trim(), p.id)); });
+    var ok = list.some(function (p) { return p.id === value; });
+    sel.value = ok ? value : "";
+    sel.classList.toggle("empty", !ok);
+  }
+
+  function renderHeader() {
+    $("g-title").value = state.title;
+    $("g-date").value = state.date;
+    $("g-place").value = state.place;
+    $("example-note").hidden = !state.example;
+  }
+
+  function renderPeople() {
+    var html = state.people.map(function (p, i) {
+      return '<div class="person-row"><span class="idx">' + (i + 1) + '</span>' +
+        '<input type="text" id="name-' + p.id + '" data-pid="' + p.id + '" value="' + esc(p.name) + '" placeholder="Friend ' + (i + 1) + '" aria-label="Person ' + (i + 1) + '" autocomplete="off">' +
+        '<button class="btn-x" type="button" data-del-person="' + p.id + '" aria-label="Remove person ' + (i + 1) + '">×</button></div>';
+    }).join("");
+    $("people").innerHTML = html;
+  }
+
+  function renderExpenses() {
+    $("expenses").innerHTML = state.expenses.map(function (e, i) {
+      return '<div class="exp-row" data-eid="' + e.id + '">' +
+        '<select class="c-who" id="payer-' + e.id + '" data-person data-field="payer" aria-label="Who paid, receipt ' + (i + 1) + '"></select>' +
+        '<input class="c-shop" type="text" id="shop-' + e.id + '" data-field="shop" value="' + esc(e.shop) + '" placeholder="Shop, e.g. Tesco" aria-label="Shop, receipt ' + (i + 1) + '" autocomplete="off">' +
+        '<input class="c-amt" type="number" id="amt-' + e.id + '" data-field="amount" value="' + esc(e.amount) + '" placeholder="0.00" min="0" step="0.01" inputmode="decimal" aria-label="Amount, receipt ' + (i + 1) + '">' +
+        '<button class="btn-x" type="button" data-del-expense="' + e.id + '" aria-label="Remove receipt ' + (i + 1) + '">×</button></div>';
+    }).join("");
+  }
+
+  function renderRides() {
+    if (!state.rides.length) {
+      $("rides").innerHTML = '<div class="ride-empty">No lifts added. Everyone made their own way.</div>';
+      return;
+    }
+    $("rides").innerHTML = state.rides.map(function (r, i) {
+      return '<div class="ride-row" data-rid="' + r.id + '">' +
+        '<label class="f c-p">Got a lift<select id="pass-' + r.id + '" data-person data-field="passenger"></select></label>' +
+        '<div class="legs">' +
+          '<label class="leg"><input type="checkbox" id="pick-' + r.id + '" data-field="pick"' + (r.pick ? " checked" : "") + '>Pick-up</label>' +
+          '<label class="leg"><input type="checkbox" id="drop-' + r.id + '" data-field="drop"' + (r.drop ? " checked" : "") + '>Drop-off</label>' +
+        '</div>' +
+        '<label class="f c-d">Driven by<select id="drv-' + r.id + '" data-person data-field="driver"></select></label>' +
+        '<button class="btn-x" type="button" data-del-ride="' + r.id + '" aria-label="Remove lift ' + (i + 1) + '">×</button></div>';
+    }).join("");
+  }
+
+  function refreshSelects() {
+    fillSelect($("host"), state.hostId, "Nobody's place / venue");
+    fillSelect($("planner"), state.plannerId, "Nobody in particular");
+    var cookLabels = ["Choose the cook", "Second cook (optional)", "Third cook (optional)"];
+    for (var i = 0; i < 3; i++) fillSelect($("cook-" + i), state.cooks[i], cookLabels[i]);
+    state.expenses.forEach(function (e) { var s = $("payer-" + e.id); if (s) fillSelect(s, e.payer, "Who paid?"); });
+    state.rides.forEach(function (r) {
+      var a = $("pass-" + r.id), b = $("drv-" + r.id);
+      if (a) fillSelect(a, r.passenger, "Choose person");
+      if (b) fillSelect(b, r.driver, "Choose driver");
+    });
+  }
+
+  function renderRates() {
+    var R = state.rates;
+    Object.keys(DEFAULT_RATES).forEach(function (k) { $("r-" + k).value = R[k]; });
+    $("rate-host").textContent = money(R.host) + " edge";
+    $("rate-ride").textContent = money(R.ride) + " per leg, " + money(R.ride * 2) + " both ways";
+    $("rate-meal").textContent = money(R.meal) + " split between cooks";
+    $("rate-plan").textContent = money(R.planBig) + " for " + R.planMin + "+ people, else " + money(R.planSmall);
+  }
+
+  function renderResults() {
+    var c = compute(state);
+    var R = state.rates;
+
+    $("count-line").innerHTML = c.N ? "<b>" + c.N + "</b> " + (c.N === 1 ? "person" : "people") + " at this gathering." : "Add at least two names to start.";
+    $("total").textContent = money(c.total);
+    $("even-line").innerHTML = c.N ? "Split evenly that would be <b>" + money(c.base) + "</b> each, before the edges in step 3." : "";
+
+    $("hint-host").textContent = c.notes.host || "Pick the person whose home was used. They pay " + money(R.host) + " less and the rest share it.";
+    $("hint-meal").textContent = c.notes.meal || "Up to three cooks. One cook gets " + money(R.meal) + " off, two get " + money(R.meal / 2) + " each, three get " + money(R.meal / 3) + " each.";
+    $("hint-plan").textContent = c.notes.plan || "The person who organised it and messaged everyone. " + money(R.planBig) + " off with " + R.planMin + " or more people, " + money(R.planSmall) + " with fewer.";
+
+    $("warns").innerHTML = c.warns.map(function (w) { return '<div class="warn">' + esc(w) + "</div>"; }).join("");
+
+    $("figures").innerHTML =
+      '<div class="fig"><span class="k">Total spent</span><span class="v">' + money(c.total) + "</span></div>" +
+      '<div class="fig"><span class="k">People</span><span class="v">' + c.N + "</span></div>" +
+      '<div class="fig"><span class="k">Even split</span><span class="v">' + money(c.base) + "</span></div>";
+
+    if (!c.N || c.total === 0) {
+      $("transfers").innerHTML = '<li class="square">Add the people and receipts above to see who owes whom.</li>';
+    } else if (!c.transfers.length) {
+      $("transfers").innerHTML = '<li class="square">Everyone is square. No money needs to move.</li>';
+    } else {
+      $("transfers").innerHTML = c.transfers.map(function (t) {
+        return '<li class="transfer"><span class="from">' + esc(t.from) + '</span><span class="arrow">sends →</span><span class="to">' + esc(t.to) + '</span><span class="amt">' + money(t.amt) + "</span></li>";
+      }).join("");
+    }
+
+    $("shares").innerHTML = c.rows.map(function (r) {
+      var a = r.adj, chips = [];
+      if (a.host) chips.push('<span class="chip edge">Host ' + money(a.host) + "</span>");
+      if (a.meal) chips.push('<span class="chip edge">Cooked ' + money(a.meal) + "</span>");
+      if (a.plan) chips.push('<span class="chip edge">Planned ' + money(a.plan) + "</span>");
+      a.items.forEach(function (t) {
+        chips.push('<span class="chip' + (t.indexOf("Drove") === 0 ? " edge" : "") + '">' + esc(t) + "</span>");
+      });
+      if (a.cover > 0.004) chips.push('<span class="chip">Covering others +' + money(a.cover) + "</span>");
+      var pill;
+      var b = round2(r.balance);
+      if (b > 0.004) pill = '<span class="pill get">Gets back <span>' + money(b) + "</span></span>";
+      else if (b < -0.004) pill = '<span class="pill owe">Owes <span>' + money(-b) + "</span></span>";
+      else pill = '<span class="pill even">Square</span>';
+      return '<div class="share"><div><div class="who">' + esc(r.name) + "</div>" +
+        (r.edge > 0.004 ? '<div class="edge-line">Edge: ' + money(r.edge) + " less to pay</div>" : "") +
+        (chips.length ? '<div class="chips">' + chips.join("") + "</div>" : "") + "</div>" +
+        '<div class="nums"><span class="line">Share <b>' + money(r.share) + '</b></span><span class="line">Paid <b>' + money(r.paid) + "</b></span>" + pill + "</div></div>";
+    }).join("") || '<div class="square">No one added yet.</div>';
+
+    var sumShares = c.rows.reduce(function (s, r) { return s + r.share; }, 0);
+    $("check").textContent = c.N ? "Check: the shares add up to " + money(sumShares) + ", the same as the total spent." : "";
+    lastCalc = c;
+  }
+
+  var lastCalc = null;
+
+  function renderAll() {
+    renderHeader(); renderPeople(); renderExpenses(); renderRides(); renderRates();
+    refreshSelects(); renderResults();
+  }
+
+  function changed(namesChanged) {
+    if (state.example) { state.example = false; $("example-note").hidden = true; }
+    if (namesChanged) refreshSelects();
+    renderResults();
+    save();
+  }
+
+  /* ---------- Events ---------- */
+  $("g-title").addEventListener("input", function (e) { state.title = e.target.value; changed(); });
+  $("g-date").addEventListener("input", function (e) { state.date = e.target.value; changed(); });
+  $("g-place").addEventListener("input", function (e) { state.place = e.target.value; changed(); });
+
+  $("people").addEventListener("input", function (e) {
+    var id = e.target.getAttribute("data-pid"); if (!id) return;
+    var p = state.people.find(function (x) { return x.id === id; });
+    if (p) { p.name = e.target.value; changed(true); }
+  });
+  $("people").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-person"); if (!id) return;
+    state.people = state.people.filter(function (p) { return p.id !== id; });
+    if (state.hostId === id) state.hostId = "";
+    if (state.plannerId === id) state.plannerId = "";
+    state.cooks = state.cooks.map(function (c) { return c === id ? "" : c; });
+    state.expenses.forEach(function (x) { if (x.payer === id) x.payer = ""; });
+    state.rides.forEach(function (r) { if (r.passenger === id) r.passenger = ""; if (r.driver === id) r.driver = ""; });
+    renderPeople(); changed(true);
+  });
+  $("add-person").addEventListener("click", function () {
+    var p = { id: nid("p"), name: "" };
+    state.people.push(p); renderPeople(); changed(true);
+    var el = $("name-" + p.id); if (el) el.focus();
+  });
+
+  function rowHandler(listId, attr, coll) {
+    var root = $(listId);
+    function update(e) {
+      var row = e.target.closest("[" + attr + "]"); if (!row) return;
+      var field = e.target.getAttribute("data-field"); if (!field) return;
+      var item = state[coll].find(function (x) { return x.id === row.getAttribute(attr); });
+      if (!item) return;
+      item[field] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      if (e.target.tagName === "SELECT") e.target.classList.toggle("empty", !e.target.value);
+      changed();
+    }
+    root.addEventListener("input", update);
+    root.addEventListener("change", function (e) { if (e.target.tagName === "SELECT" || e.target.type === "checkbox") update(e); });
+  }
+  rowHandler("expenses", "data-eid", "expenses");
+  rowHandler("rides", "data-rid", "rides");
+
+  $("expenses").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-expense"); if (!id) return;
+    state.expenses = state.expenses.filter(function (x) { return x.id !== id; });
+    if (!state.expenses.length) state.expenses.push({ id: nid("e"), payer: "", shop: "", amount: "" });
+    renderExpenses(); changed(true);
+  });
+  $("add-expense").addEventListener("click", function () {
+    var x = { id: nid("e"), payer: "", shop: "", amount: "" };
+    state.expenses.push(x); renderExpenses(); changed(true);
+    var el = $("payer-" + x.id); if (el) el.focus();
+  });
+
+  $("rides").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-ride"); if (!id) return;
+    state.rides = state.rides.filter(function (x) { return x.id !== id; });
+    renderRides(); changed(true);
+  });
+  $("add-ride").addEventListener("click", function () {
+    var r = { id: nid("r"), passenger: "", driver: "", pick: true, drop: true };
+    state.rides.push(r); renderRides(); changed(true);
+    var el = $("pass-" + r.id); if (el) el.focus();
+  });
+
+  $("host").addEventListener("change", function (e) { state.hostId = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
+  $("planner").addEventListener("change", function (e) { state.plannerId = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
+  [0, 1, 2].forEach(function (i) {
+    $("cook-" + i).addEventListener("change", function (e) { state.cooks[i] = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
+  });
+
+  Object.keys(DEFAULT_RATES).forEach(function (k) {
+    $("r-" + k).addEventListener("input", function (e) {
+      var v = num(e.target.value);
+      state.rates[k] = v < 0 ? 0 : v;
+      renderRates(); changed();
+    });
+  });
+
+  $("btn-fresh").addEventListener("click", function () { state = blankState(); save(); renderAll(); $("g-title").focus(); });
+
+  var clearTimer = null;
+  $("btn-clear").addEventListener("click", function (e) {
+    var b = e.currentTarget;
+    if (!b.classList.contains("armed")) {
+      b.classList.add("armed"); b.textContent = "Tap again to clear";
+      clearTimer = setTimeout(function () { b.classList.remove("armed"); b.textContent = "Clear everything"; }, 3500);
+      return;
+    }
+    clearTimeout(clearTimer);
+    b.classList.remove("armed"); b.textContent = "Clear everything";
+    var keepRates = state.rates;
+    state = blankState(); state.rates = keepRates; save(); renderAll();
+    window.scrollTo({ top: 0 });
+  });
+
+  function summaryText() {
+    var c = lastCalc || compute(state);
+    var lines = [];
+    lines.push((state.title || "Gathering") + (state.date ? " · " + new Date(state.date + "T12:00:00").toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : ""));
+    if (state.place) lines.push(state.place);
+    lines.push("");
+    lines.push("Total spent: " + money(c.total) + " · " + c.N + " people");
+    state.expenses.forEach(function (e) {
+      if (num(e.amount)) lines.push("  " + (nameOf(e.payer) || "?") + " – " + (e.shop || "shop") + ": " + money(num(e.amount)));
+    });
+    lines.push("");
+    lines.push("Shares:");
+    c.rows.forEach(function (r) {
+      lines.push("  " + r.name + ": " + money(r.share) + (r.edge > 0.004 ? " (edge " + money(r.edge) + ")" : ""));
+    });
+    lines.push("");
+    if (c.transfers.length) {
+      lines.push("Settle up:");
+      c.transfers.forEach(function (t) { lines.push("  " + t.from + " → " + t.to + ": " + money(t.amt)); });
+    } else {
+      lines.push("Everyone is square.");
+    }
+    return lines.join("\n");
+  }
+
+  $("btn-copy").addEventListener("click", function () {
+    var text = summaryText();
+    var fb = $("copy-fallback");
+    function fallback() {
+      fb.hidden = false; fb.value = text; fb.focus(); fb.select();
+      $("copy-status").textContent = "Select the text below and copy it.";
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () {
+        fb.hidden = true;
+        $("copy-status").textContent = "Copied. Paste it in the group chat.";
+        setTimeout(function () { $("copy-status").textContent = ""; }, 3000);
+      }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  // Exposed for testing in the console.
+  window.__gatheringSplit = { compute: compute, exampleState: exampleState };
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
