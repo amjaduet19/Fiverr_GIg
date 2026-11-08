@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gathering Split</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one narrow column of four numbered steps (who came → what was spent → who chipped in → the split), results last. */
+:root {
+  --bg: #EDF2EF;
+  --surface: #FFFFFF;
+  --field: #F6F9F7;
+  --ink: #15201C;
+  --muted: #5A6A63;
+  --line: #D3DDD8;
+  --accent: #1D6A50;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DAEAE2;
+  --edge: #8F5600;
+  --edge-soft: #F5E5C8;
+  --owe: #A8261E;
+  --owe-soft: #F7DDDA;
+  --warn: #8A5A00;
+  --warn-soft: #FBF0D9;
+
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1412; --surface: #161F1B; --field: #1C2722; --ink: #E5EDE9; --muted: #92A39C;
+    --line: #2A3832; --accent: #5BC39A; --accent-ink: #0A1310; --accent-soft: #1B392E;
+    --edge: #E8B65E; --edge-soft: #3A2C13; --owe: #F1897F; --owe-soft: #3C1C19;
+    --warn: #E8B65E; --warn-soft: #33280F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1412; --surface: #161F1B; --field: #1C2722; --ink: #E5EDE9; --muted: #92A39C;
+  --line: #2A3832; --accent: #5BC39A; --accent-ink: #0A1310; --accent-soft: #1B392E;
+  --edge: #E8B65E; --edge-soft: #3A2C13; --owe: #F1897F; --owe-soft: #3C1C19;
+  --warn: #E8B65E; --warn-soft: #33280F;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* ---------- Header ---------- */
+header.top { display: flex; flex-direction: column; gap: 12px; padding-bottom: 6px; }
+.eyebrow { font: 600 12px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+#g-title {
+  font: 800 clamp(28px, 6vw, 44px)/1.05 var(--f-display);
+  letter-spacing: -.02em;
+  border: 0; border-bottom: 2px dashed var(--line); border-radius: 0;
+  background: transparent; color: var(--ink); padding: 4px 0 8px; width: 100%;
+}
+#g-title:focus { outline: none; border-bottom-color: var(--accent); }
+#g-title::placeholder { color: var(--muted); opacity: .6; }
+.meta { display: grid; grid-template-columns: 180px 1fr; gap: 10px; }
+@media (max-width: 520px) { .meta { grid-template-columns: 1fr; } }
+
+.example-note {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  background: var(--edge-soft); color: var(--ink);
+  border-radius: var(--r); padding: 10px 14px; font-size: 14px;
+}
+.example-note strong { color: var(--edge); }
+
+/* ---------- Steps ---------- */
+section.step {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px; display: flex; flex-direction: column; gap: 14px;
+}
+@media (max-width: 520px) { section.step { padding: 16px 14px; } }
+.step-head { display: flex; align-items: baseline; gap: 12px; }
+.step-no {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink);
+  font: 700 14px/1 var(--f-num);
+  transform: translateY(4px);
+}
+.step-head h2 { margin: 0; font: 700 22px/1.2 var(--f-display); letter-spacing: -.01em; text-wrap: balance; }
+.step-head p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.step-head > div { min-width: 0; }
+
+h3.sub {
+  margin: 6px 0 0; font: 700 13px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+h3.sub .rate { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--edge); }
+
+/* ---------- Form controls ---------- */
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; min-width: 0; }
+input[type="text"], input[type="date"], input[type="number"], select {
+  font: 500 15px/1.2 var(--f-body); color: var(--ink);
+  background: var(--field); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 11px; width: 100%; min-width: 0; min-height: 42px;
+}
+input[type="number"] { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+select:invalid, select.empty { color: var(--muted); }
+
+button { font: 600 14px/1 var(--f-body); cursor: pointer; border-radius: 8px; }
+.btn-add {
+  align-self: flex-start; border: 1px dashed var(--accent); color: var(--accent);
+  background: transparent; padding: 10px 14px; min-height: 40px;
+}
+.btn-add:hover { background: var(--accent-soft); }
+.btn-x {
+  flex: none; width: 40px; height: 42px; border: 1px solid var(--line); background: transparent;
+  color: var(--muted); font-size: 20px; line-height: 1;
+}
+.btn-x:hover { color: var(--owe); border-color: var(--owe); }
+.btn-solid { background: var(--accent); color: var(--accent-ink); border: 0; padding: 11px 16px; min-height: 42px; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 10px 14px; min-height: 40px; }
+.btn-ghost.armed { border-color: var(--owe); color: var(--owe); background: var(--owe-soft); }
+
+/* People */
+.people { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+@media (max-width: 560px) { .people { grid-template-columns: 1fr; } }
+.person-row { display: flex; align-items: center; gap: 8px; }
+.person-row .idx { flex: none; width: 22px; text-align: right; font: 500 13px/1 var(--f-num); color: var(--muted); }
+.count-line { font-size: 14px; color: var(--muted); }
+.count-line b { color: var(--ink); }
+
+/* Expenses */
+.exp-head, .exp-row { display: grid; grid-template-columns: 1.1fr 1.3fr 120px 40px; gap: 8px; align-items: center; }
+.exp-head { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; padding: 0 2px; }
+.exp-list { display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 560px) {
+  .exp-head { display: none; }
+  .exp-row { grid-template-columns: 1fr 110px 40px; grid-template-areas: "who who x" "shop amt x"; padding: 10px; border: 1px solid var(--line); border-radius: var(--r); }
+  .exp-row .c-who { grid-area: who; } .exp-row .c-shop { grid-area: shop; } .exp-row .c-amt { grid-area: amt; } .exp-row .btn-x { grid-area: x; align-self: stretch; height: auto; }
+}
+.total-bar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 20px;
+  border-top: 2px solid var(--ink); padding-top: 12px;
+}
+.total-bar .lbl { font-weight: 700; font-size: 15px; }
+.total-bar .big { font: 600 26px/1 var(--f-num); font-variant-numeric: tabular-nums; }
+.total-bar .even { flex-basis: 100%; color: var(--muted); font-size: 14px; }
+.total-bar .even b { font-family: var(--f-num); color: var(--ink); font-weight: 600; }
+
+/* Factors */
+.factor { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.factor:first-of-type { border-top: 0; padding-top: 0; }
+.factor .hint { margin: 0; font-size: 13.5px; color: var(--muted); max-width: 64ch; }
+.factor .hint b { color: var(--edge); font-weight: 600; }
+.cooks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .cooks { grid-template-columns: 1fr; } }
+.one { max-width: 360px; }
+
+.ride-list { display: flex; flex-direction: column; gap: 8px; }
+.ride-row {
+  display: grid; grid-template-columns: 1fr auto 1fr 40px; gap: 8px; align-items: end;
+  padding: 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--field);
+}
+.ride-row select, .ride-row input { background: var(--surface); }
+.legs { display: flex; gap: 6px; padding-bottom: 1px; }
+.leg {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; min-height: 42px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  font-size: 13.5px; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap;
+}
+.leg input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
+.leg:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+@media (max-width: 600px) {
+  .ride-row { grid-template-columns: 1fr 40px; grid-template-areas: "p x" "l x" "d x"; }
+  .ride-row .c-p { grid-area: p; } .ride-row .legs { grid-area: l; } .ride-row .c-d { grid-area: d; }
+  .ride-row .btn-x { grid-area: x; align-self: stretch; height: auto; }
+}
+.extra-list { display: flex; flex-direction: column; gap: 8px; }
+.extra-row { display: grid; grid-template-columns: minmax(0, 1fr) 130px 40px; gap: 8px; align-items: center; }
+.limit-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .limit-tiers { grid-template-columns: 1fr; } }
+.tier { background: var(--field); border-radius: 8px; padding: 9px 12px; display: flex; flex-direction: column; gap: 2px; }
+.tier .k { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tier .v { font: 600 16px/1.2 var(--f-num); color: var(--edge); }
+.ride-empty { font-size: 14px; color: var(--muted); padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r); }
+
+details.rates { border: 1px solid var(--line); border-radius: var(--r); padding: 0 14px; }
+details.rates summary { cursor: pointer; padding: 12px 0; font-weight: 600; font-size: 14px; color: var(--muted); }
+details.rates[open] summary { color: var(--ink); }
+.rate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-bottom: 14px; }
+@media (max-width: 560px) { .rate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Results ---------- */
+.warns { display: flex; flex-direction: column; gap: 6px; }
+.warns:empty { display: none; }
+.warn { background: var(--warn-soft); color: var(--ink); border-left: 3px solid var(--warn); border-radius: 6px; padding: 8px 12px; font-size: 14px; }
+
+.figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .figures { grid-template-columns: 1fr 1fr; } .figures .fig:first-child { grid-column: 1 / -1; } }
+.fig { background: var(--field); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fig .k { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.fig .v { font: 600 22px/1.1 var(--f-num); font-variant-numeric: tabular-nums; }
+
+.transfers { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.transfer {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 12px 14px; border-radius: var(--r); background: var(--accent-soft);
+}
+.transfer .from, .transfer .to { font-weight: 700; overflow-wrap: anywhere; }
+.transfer .to { text-align: left; }
+.transfer .arrow { color: var(--accent); font: 600 13px/1 var(--f-body); white-space: nowrap; }
+.transfer .amt { font: 600 18px/1 var(--f-num); font-variant-numeric: tabular-nums; }
+.square { padding: 12px 14px; border-radius: var(--r); background: var(--field); color: var(--muted); }
+
+.shares { display: flex; flex-direction: column; }
+.share {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: start;
+  padding: 14px 0; border-top: 1px solid var(--line);
+}
+.share:first-child { border-top: 0; }
+.share .who { font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.chip { font-size: 12.5px; font-weight: 600; padding: 3px 8px; border-radius: 99px; background: var(--field); color: var(--muted); white-space: nowrap; }
+.chip.edge { background: var(--edge-soft); color: var(--edge); }
+.chip.num { font-family: var(--f-num); }
+.edge-line { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--edge); }
+.share .nums { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.share .line { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.share .line b { font: 600 14px/1 var(--f-num); color: var(--ink); font-variant-numeric: tabular-nums; }
+.pill { font: 700 14px/1 var(--f-body); padding: 7px 10px; border-radius: 99px; white-space: nowrap; }
+.pill span { font-family: var(--f-num); }
+.pill.get { background: var(--accent-soft); color: var(--accent); }
+.pill.owe { background: var(--owe-soft); color: var(--owe); }
+.pill.even { background: var(--field); color: var(--muted); }
+.check { font-size: 13px; color: var(--muted); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#copy-status { font-size: 13px; color: var(--accent); font-weight: 600; }
+#copy-fallback { width: 100%; min-height: 160px; font: 13px/1.5 var(--f-num); padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--ink); }
+
+footer { color: var(--muted); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .pill, .transfer { transition: background-color .2s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <span class="eyebrow">Gathering tab</span>
+    <input id="g-title" type="text" placeholder="Name this gathering" aria-label="Gathering name" autocomplete="off">
+    <div class="meta">
+      <label class="f">Date<input id="g-date" type="date"></label>
+      <label class="f">Place<input id="g-place" type="text" placeholder="e.g. Amjad's place, Dublin" autocomplete="off"></label>
+    </div>
+  </header>
+
+  <div class="example-note" id="example-note" hidden>
+    <span><strong>Example gathering.</strong> These names and amounts are made up to show how the split works.</span>
+    <button class="btn-solid" id="btn-fresh" type="button">Start a new gathering</button>
+  </div>
+
+  <!-- Step 1 -->
+  <section class="step" aria-labelledby="h-people">
+    <div class="step-head">
+      <span class="step-no">1</span>
+      <div><h2 id="h-people">Who came</h2><p>Type each person once. Their names fill every drop-down below.</p></div>
+    </div>
+    <div class="people" id="people"></div>
+    <button class="btn-add" id="add-person" type="button">+ Add another person</button>
+    <div class="count-line" id="count-line"></div>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="step" aria-labelledby="h-exp">
+    <div class="step-head">
+      <span class="step-no">2</span>
+      <div><h2 id="h-exp">What was spent</h2><p>One line per receipt: who paid, the shop, and how much.</p></div>
+    </div>
+    <div class="exp-head" aria-hidden="true"><span>Who paid</span><span>Shop</span><span>Amount (€)</span><span></span></div>
+    <div class="exp-list" id="expenses"></div>
+    <button class="btn-add" id="add-expense" type="button">+ Add another receipt</button>
+    <div class="total-bar">
+      <span class="lbl">Total spent</span>
+      <span class="big" id="total">€0.00</span>
+      <span class="even" id="even-line"></span>
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="step" aria-labelledby="h-factors">
+    <div class="step-head">
+      <span class="step-no">3</span>
+      <div><h2 id="h-factors">Who chipped in</h2><p>Hosting, driving, cooking and planning earn an edge. The others cover it between them.</p></div>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Hosted at <span class="rate" id="rate-host"></span></h3>
+      <div class="one"><select id="host" data-person aria-label="Whose place was used"></select></div>
+      <p class="hint" id="hint-host"></p>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Lifts given <span class="rate" id="rate-ride"></span></h3>
+      <p class="hint">Only add people who got a lift. Anyone who came by bus or on their own needs no entry. Tick <b>Pick-up</b>, <b>Drop-off</b> or both.</p>
+      <div class="ride-list" id="rides"></div>
+      <button class="btn-add" id="add-ride" type="button">+ Add a lift</button>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Cooked the main meal <span class="rate" id="rate-meal"></span></h3>
+      <div class="cooks">
+        <select id="cook-0" data-person data-cook="0" aria-label="Cook 1"></select>
+        <select id="cook-1" data-person data-cook="1" aria-label="Cook 2"></select>
+        <select id="cook-2" data-person data-cook="2" aria-label="Cook 3"></select>
+      </div>
+      <p class="hint" id="hint-meal"></p>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Sweet or side dish <span class="rate" id="rate-side"></span></h3>
+      <div class="one"><select id="side" data-person aria-label="Who made the sweet or side dish"></select></div>
+      <p class="hint" id="hint-side"></p>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Planned and called everyone <span class="rate" id="rate-plan"></span></h3>
+      <div class="one"><select id="planner" data-person aria-label="Who planned the gathering"></select></div>
+      <p class="hint" id="hint-plan"></p>
+      <label class="f one"><span id="init-label">Whose idea was the gathering?</span><select id="initiator"></select></label>
+      <p class="hint" id="hint-init"></p>
+    </div>
+
+    <div class="factor">
+      <h3 class="sub">Money back limit <span class="rate">for anyone whose edges beat their share</span></h3>
+      <p class="hint">If someone's edges add up to more than their share, they would get paid just for helping. That money back is limited by how big their edge is. You always get back what you spent at the shops; the limit only applies to money on top of that.</p>
+      <div class="limit-tiers" id="limit-tiers"></div>
+      <p class="hint" id="hint-cap"></p>
+    </div>
+
+    <details class="rates" id="rates-box">
+      <summary>Change the amounts</summary>
+      <div class="rate-grid">
+        <label class="f">Hosting (€)<input type="number" id="r-host" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Per lift leg (€)<input type="number" id="r-ride" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Main meal (€)<input type="number" id="r-meal" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Sweet or side dish (€)<input type="number" id="r-side" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Planning edge (€)<input type="number" id="r-plan" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Gathering starter pays extra (€)<input type="number" id="r-init" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Small edge up to (€)<input type="number" id="r-capTier1" min="0" step="1" inputmode="decimal"></label>
+        <label class="f">Medium edge up to (€)<input type="number" id="r-capTier2" min="0" step="1" inputmode="decimal"></label>
+        <label class="f">Back limit, small edge (€)<input type="number" id="r-capLow" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Back limit, medium edge (€)<input type="number" id="r-capMid" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Back limit, big edge (€)<input type="number" id="r-capHigh" min="0" step="0.5" inputmode="decimal"></label>
+      </div>
+    </details>
+  </section>
+
+  <!-- Step 4 -->
+  <section class="step" aria-labelledby="h-extra">
+    <div class="step-head">
+      <span class="step-no">4</span>
+      <div><h2 id="h-extra">Paying extra</h2><p>Optional. Anyone who wants to put in more than their share, so the gathering is lighter on everyone else.</p></div>
+    </div>
+    <div class="extra-list" id="extras"></div>
+    <button class="btn-add" id="add-extra" type="button">+ Add someone paying extra</button>
+    <p class="hint" id="hint-extra" style="margin:0;font-size:13.5px;color:var(--muted)"></p>
+  </section>
+
+  <!-- Step 5 -->
+  <section class="step" aria-labelledby="h-split">
+    <div class="step-head">
+      <span class="step-no">5</span>
+      <div><h2 id="h-split">The split</h2><p>Each person's fair share after the edges, and who sends money to whom.</p></div>
+    </div>
+    <div class="warns" id="warns"></div>
+    <div class="figures" id="figures"></div>
+
+    <h3 class="sub">Who sends what</h3>
+    <ul class="transfers" id="transfers"></ul>
+
+    <h3 class="sub">Each person</h3>
+    <div class="shares" id="shares"></div>
+    <div class="check" id="check"></div>
+
+    <h3 class="sub">Send it to the group</h3>
+    <div class="actions">
+      <button class="btn-solid" id="btn-pdf" type="button">Download PDF</button>
+      <button class="btn-ghost" id="btn-png" type="button">Download image</button>
+      <button class="btn-ghost" id="btn-share" type="button" hidden>Share PDF…</button>
+      <button class="btn-ghost" id="btn-copy" type="button">Copy as text</button>
+    </div>
+    <span id="copy-status" role="status"></span>
+    <div class="actions">
+      <button class="btn-ghost" id="btn-clear" type="button">Clear everything</button>
+    </div>
+    <textarea id="copy-fallback" readonly hidden aria-label="Summary text"></textarea>
+  </section>
+
+  <footer>Saved on this device as you type.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Rules ---------- */
+  var DEFAULT_RATES = {
+    host: 10, ride: 1, meal: 10, side: 5, plan: 3, init: 10,
+    capTier1: 10, capTier2: 20, capLow: 2, capMid: 5, capHigh: 10
+  };
+  var STORE_KEY = "gathering-split-v1";
+  var MIN_SLOTS = 8;
+
+  var eur = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
+  function money(n) { return eur.format(Math.abs(n) < 0.005 ? 0 : n); }
+  function num(v) { var n = parseFloat(String(v).replace(",", ".")); return isFinite(n) ? n : 0; }
+  function round2(n) { return Math.round(n * 100) / 100; }
+
+  var seq = 0;
+  function nid(p) { seq += 1; return p + Date.now().toString(36) + seq; }
+  function todayISO() {
+    var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ---------- State ---------- */
+  function blankState() {
+    var people = [];
+    for (var i = 0; i < MIN_SLOTS; i++) people.push({ id: nid("p"), name: "" });
+    return {
+      example: false, liftRateV2: true, title: "", date: todayISO(), place: "",
+      people: people,
+      expenses: [{ id: nid("e"), payer: "", shop: "", amount: "" }],
+      hostId: "", rides: [], cooks: ["", "", ""], sideId: "", plannerId: "", initiator: "same", extras: [],
+      rates: Object.assign({}, DEFAULT_RATES)
+    };
+  }
+
+  function exampleState() {
+    var s = blankState();
+    var names = ["Amjad Ali", "Bilal", "Usman", "Hamza", "Zain"];
+    names.forEach(function (n, i) { s.people[i].name = n; });
+    var id = function (i) { return s.people[i].id; };
+    s.example = true;
+    s.title = "Saturday dinner at Amjad's";
+    s.place = "Amjad's place, Dublin";
+    s.expenses = [
+      { id: nid("e"), payer: id(0), shop: "Tesco", amount: "46.50" },
+      { id: nid("e"), payer: id(1), shop: "Lidl", amount: "28.00" },
+      { id: nid("e"), payer: id(2), shop: "Spar (drinks)", amount: "25.50" }
+    ];
+    s.hostId = id(0);
+    s.cooks = [id(1), "", ""];
+    s.sideId = id(4);
+    s.plannerId = id(2);
+    s.rides = [{ id: nid("r"), passenger: id(4), driver: id(3), pick: true, drop: true }];
+    return s;
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && Array.isArray(s.people)) {
+          // The lift default used to be EUR 1.50 per leg; move saved copies of that old default to EUR 1.
+          if (!s.liftRateV2 && s.rates && Number(s.rates.ride) === 1.5) s.rates.ride = 1;
+          s.liftRateV2 = true;
+          s.rates = Object.assign({}, DEFAULT_RATES, s.rates || {});
+          s.cooks = (s.cooks || []).concat(["", "", ""]).slice(0, 3);
+          s.rides = s.rides || []; s.expenses = s.expenses || []; s.extras = s.extras || [];
+          return s;
+        }
+      }
+    } catch (e) { /* storage unavailable */ }
+    return exampleState();
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  }
+
+  var state = load();
+
+  function attendees() {
+    return state.people.filter(function (p) { return p.name.trim() !== ""; });
+  }
+  function nameOf(id) {
+    var p = state.people.find(function (x) { return x.id === id; });
+    return p && p.name.trim() ? p.name.trim() : "";
+  }
+
+  /* ---------- The calculation ---------- */
+  function compute(s) {
+    var people = s.people.filter(function (p) { return p.name.trim() !== ""; });
+    var ids = people.map(function (p) { return p.id; });
+    var isIn = function (id) { return ids.indexOf(id) !== -1; };
+    var N = people.length;
+    var R = s.rates;
+    var warns = [];
+
+    var total = 0;
+    var paid = {};
+    ids.forEach(function (id) { paid[id] = 0; });
+    s.expenses.forEach(function (e, i) {
+      var a = num(e.amount);
+      if (a === 0) return;
+      total += a;
+      if (!e.payer || !isIn(e.payer)) {
+        warns.push("Receipt " + (i + 1) + (e.shop ? " (" + e.shop + ")" : "") + " needs a name in “Who paid”.");
+      } else {
+        paid[e.payer] += a;
+      }
+    });
+
+    // Every adjustment moves money between people, so shares always add up to the total.
+    var adj = {};
+    ids.forEach(function (id) {
+      adj[id] = { host: 0, meal: 0, side: 0, drove: 0, plan: 0, lift: 0, cover: 0, items: [] };
+    });
+    function spreadOver(amount, excluded) {
+      var rest = ids.filter(function (id) { return excluded.indexOf(id) === -1; });
+      if (!rest.length) return false;
+      rest.forEach(function (id) { adj[id].cover += amount / rest.length; });
+      return rest.length;
+    }
+
+    var notes = { host: "", meal: "", side: "", plan: "", rides: [] };
+
+    // Hosting
+    if (s.hostId && isIn(s.hostId) && N > 1 && R.host > 0) {
+      adj[s.hostId].host -= R.host;
+      var n1 = spreadOver(R.host, [s.hostId]);
+      notes.host = nameOf(s.hostId) + " pays " + money(R.host) + " less. That " + money(R.host) +
+        " is shared by the other " + n1 + " (" + money(R.host / n1) + " each).";
+    }
+
+    // Main meal
+    var cooks = [];
+    s.cooks.forEach(function (c) { if (c && isIn(c) && cooks.indexOf(c) === -1) cooks.push(c); });
+    if (cooks.length && R.meal > 0) {
+      if (cooks.length >= N) {
+        warns.push("Everyone is listed as a cook, so nobody is left to cover the meal edge. It has been skipped.");
+      } else {
+        var each = R.meal / cooks.length;
+        cooks.forEach(function (c) { adj[c].meal -= each; });
+        var n2 = spreadOver(R.meal, cooks);
+        notes.meal = (cooks.length === 1 ? nameOf(cooks[0]) + " pays " + money(each) + " less. "
+          : cooks.map(nameOf).join(" and ") + " each pay " + money(each) + " less. ") +
+          "The " + money(R.meal) + " is shared by the other " + n2 + " (" + money(R.meal / n2) + " each).";
+      }
+    }
+
+    // Sweet or side dish: one person, a set amount, shared by everyone else.
+    if (s.sideId && isIn(s.sideId) && N > 1 && R.side > 0) {
+      adj[s.sideId].side -= R.side;
+      var n4 = spreadOver(R.side, [s.sideId]);
+      notes.side = nameOf(s.sideId) + " made the sweet or side dish, so pays " + money(R.side) +
+        " less. Shared by the other " + n4 + " (" + money(R.side / n4) + " each).";
+    }
+
+    // Lifts: the driver's discount moves straight onto the person they drove.
+    s.rides.forEach(function (r, i) {
+      var legs = (r.pick ? 1 : 0) + (r.drop ? 1 : 0);
+      if (!r.passenger && !r.driver) return;
+      if (!r.passenger || !r.driver || !isIn(r.passenger) || !isIn(r.driver)) {
+        warns.push("Lift " + (i + 1) + " needs both the person who got the lift and the driver.");
+        return;
+      }
+      if (r.passenger === r.driver) { warns.push("Lift " + (i + 1) + ": the driver and passenger are the same person."); return; }
+      if (!legs) { warns.push("Lift " + (i + 1) + ": tick Pick-up, Drop-off or both."); return; }
+      var amt = legs * R.ride;
+      adj[r.driver].drove -= amt;
+      adj[r.passenger].lift += amt;
+      adj[r.passenger].items.push("Lift from " + nameOf(r.driver) + " +" + money(amt));
+      adj[r.driver].items.push("Drove " + nameOf(r.passenger) + " −" + money(amt));
+      notes.rides.push(nameOf(r.driver) + " gave " + nameOf(r.passenger) + " a " +
+        (legs === 2 ? "pick-up and drop-off" : r.pick ? "pick-up" : "drop-off") + ", so " + money(amt) +
+        " moves from " + nameOf(r.driver) + "'s share to " + nameOf(r.passenger) + "'s.");
+    });
+
+    // Planning
+    var planAmt = 0;
+    if (s.plannerId && isIn(s.plannerId) && N > 1) {
+      planAmt = R.plan;
+      if (planAmt > 0) {
+        adj[s.plannerId].plan -= planAmt;
+        var n3 = spreadOver(planAmt, [s.plannerId]);
+        notes.plan = nameOf(s.plannerId) + " planned it and messaged everyone, so pays " + money(planAmt) +
+          " less. Shared by the other " + n3 + " (" + money(planAmt / n3) + " each).";
+      }
+    }
+
+    var base = N ? total / N : 0;
+    var share = {}, edge = {}, capAdj = {}, gift = {}, capInfo = {};
+    ids.forEach(function (id) {
+      var a = adj[id];
+      share[id] = base + a.host + a.meal + a.side + a.drove + a.plan + a.lift + a.cover;
+      edge[id] = -(a.host + a.meal + a.side + a.drove + a.plan);
+      capAdj[id] = 0; gift[id] = 0;
+    });
+
+    // Take `amount` off these people's shares equally, never pushing anyone below zero.
+    function lowerShares(targets, amount, ledger) {
+      var left = amount, guard = 0;
+      while (left > 0.00001 && guard++ < 100) {
+        var act = targets.filter(function (id) { return share[id] > 0.00001; });
+        if (!act.length) break;
+        var step = Math.min(left / act.length, Math.min.apply(null, act.map(function (id) { return share[id]; })));
+        act.forEach(function (id) { share[id] -= step; ledger[id] -= step; });
+        left -= step * act.length;
+      }
+      return amount - left;
+    }
+
+    // Describe who an extra payment helped. People already at zero or below are skipped.
+    function spreadText(others, ledger, amount) {
+      var helped = others.filter(function (o) { return ledger[o] < -0.004; });
+      if (!helped.length) return "";
+      var skipped = others.length - helped.length;
+      return (skipped ? helped.map(nameOf).join(" and ") : helped.length === 1 ? nameOf(helped[0]) : "Everyone else") +
+        (helped.length === 1 || !skipped ? " pays " : " pay ") + money(amount) + " less" +
+        (helped.length > 1 ? " between them (about " + money(amount / helped.length) + " each)" : "") +
+        (skipped ? ". Anyone already at zero or below isn't lowered further." : ".");
+    }
+
+    // Money back limit: a share below zero means money back on top of what was spent.
+    notes.cap = [];
+    ids.forEach(function (id) {
+      if (share[id] >= -0.005) return;
+      var e = edge[id];
+      var limit = e > R.capTier2 ? R.capHigh : e > R.capTier1 ? R.capMid : R.capLow;
+      var free = -share[id];
+      if (free <= limit + 0.005) return;
+      var excess = free - limit;
+      share[id] += excess; capAdj[id] += excess;
+      var others = ids.filter(function (o) { return o !== id && share[o] > 0; });
+      var moved = lowerShares(others, excess, capAdj);
+      if (moved < excess - 0.00001) { share[id] -= excess - moved; capAdj[id] -= excess - moved; }
+      capInfo[id] = { was: free, now: -share[id], edge: e };
+      notes.cap.push(nameOf(id) + "'s edges come to " + money(e) + ", which would mean " + money(free) +
+        " back on top of what they spent. The limit for that edge is " + money(limit) + ", so the other " +
+        money(moved) + " comes off everyone else's share.");
+    });
+
+    // Whoever wanted the gathering puts in a set amount extra, which lowers everyone else's share.
+    var push = {};
+    ids.forEach(function (id) { push[id] = 0; });
+    notes.init = "";
+    var starter = (s.initiator === undefined || s.initiator === "same") ? s.plannerId : s.initiator;
+    if (starter && isIn(starter) && N > 1 && R.init > 0) {
+      var others0 = ids.filter(function (o) { return o !== starter; });
+      var usedP = lowerShares(others0, R.init, push);
+      share[starter] += usedP; push[starter] += usedP;
+      if (usedP > 0.005) {
+        notes.init = nameOf(starter) + " wanted this gathering, so puts in " + money(usedP) + " extra. " +
+          spreadText(others0, push, usedP);
+      }
+    }
+
+    // Paying extra: lowers everyone else's share equally.
+    notes.extras = [];
+    (s.extras || []).forEach(function (x, i) {
+      var amt = num(x.amount);
+      if (amt <= 0) return;
+      if (!x.who || !isIn(x.who)) { warns.push("Extra payment " + (i + 1) + " needs a name."); return; }
+      var others = ids.filter(function (o) { return o !== x.who; });
+      var used = lowerShares(others, amt, gift);
+      share[x.who] += used; gift[x.who] += used;
+      if (used < amt - 0.005) {
+        warns.push(nameOf(x.who) + " offered " + money(amt) + " extra, but only " + money(used) +
+          " is needed. Everyone else's share is already down to zero.");
+      }
+      if (used > 0.005) {
+        notes.extras.push(nameOf(x.who) + " is paying " + money(used) + " extra. " + spreadText(others, gift, used));
+      }
+    });
+
+    var rows = people.map(function (p) {
+      var a = adj[p.id];
+      a.capAdj = capAdj[p.id]; a.gift = gift[p.id]; a.push = push[p.id];
+      return {
+        id: p.id, name: p.name.trim(), adj: a, share: share[p.id], paid: paid[p.id],
+        balance: paid[p.id] - share[p.id], edge: edge[p.id], cap: capInfo[p.id] || null, gift: gift[p.id],
+        push: push[p.id], starterName: starter && isIn(starter) ? nameOf(starter) : ""
+      };
+    });
+
+    // Round shares to whole cents so they add up exactly to the total (largest remainder gets the spare cent).
+    if (rows.length) {
+      var totalC = Math.round(total * 100);
+      var raw = rows.map(function (r) { return Math.round(r.share * 100 * 1e6) / 1e6; });
+      var cents = raw.map(Math.floor);
+      var spare = totalC - cents.reduce(function (a, b) { return a + b; }, 0);
+      var order = raw.map(function (v, i) { return i; }).sort(function (i, j) { return (raw[j] - cents[j]) - (raw[i] - cents[i]); });
+      for (var k = 0; spare > 0 && k < order.length * 2; k++, spare--) cents[order[k % order.length]] += 1;
+      rows.forEach(function (r, i) { r.share = cents[i] / 100; r.balance = round2(r.paid - r.share); });
+    }
+
+    // Settle up: largest debtor pays largest creditor until everyone is square.
+    var cred = [], debt = [];
+    rows.forEach(function (r) {
+      var b = round2(r.balance);
+      if (b > 0.004) cred.push({ name: r.name, amt: b });
+      else if (b < -0.004) debt.push({ name: r.name, amt: -b });
+    });
+    cred.sort(function (a, b) { return b.amt - a.amt; });
+    debt.sort(function (a, b) { return b.amt - a.amt; });
+    var transfers = [];
+    var ci = 0, di = 0;
+    while (ci < cred.length && di < debt.length) {
+      var x = round2(Math.min(cred[ci].amt, debt[di].amt));
+      if (x >= 0.01) transfers.push({ from: debt[di].name, to: cred[ci].name, amt: x });
+      cred[ci].amt = round2(cred[ci].amt - x);
+      debt[di].amt = round2(debt[di].amt - x);
+      if (cred[ci].amt < 0.01) ci++;
+      if (debt[di].amt < 0.01) di++;
+    }
+
+    return { N: N, total: total, base: base, rows: rows, transfers: transfers, warns: warns, notes: notes, planAmt: planAmt };
+  }
+
+  /* ---------- Rendering ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+
+  function fillSelect(sel, value, placeholder) {
+    var list = attendees();
+    sel.innerHTML = "";
+    sel.add(new Option(placeholder, ""));
+    list.forEach(function (p) { sel.add(new Option(p.name.trim(), p.id)); });
+    var ok = list.some(function (p) { return p.id === value; });
+    sel.value = ok ? value : "";
+    sel.classList.toggle("empty", !ok);
+  }
+
+  function renderHeader() {
+    $("g-title").value = state.title;
+    $("g-date").value = state.date;
+    $("g-place").value = state.place;
+    $("example-note").hidden = !state.example;
+  }
+
+  function renderPeople() {
+    var html = state.people.map(function (p, i) {
+      return '<div class="person-row"><span class="idx">' + (i + 1) + '</span>' +
+        '<input type="text" id="name-' + p.id + '" data-pid="' + p.id + '" value="' + esc(p.name) + '" placeholder="Friend ' + (i + 1) + '" aria-label="Person ' + (i + 1) + '" autocomplete="off">' +
+        '<button class="btn-x" type="button" data-del-person="' + p.id + '" aria-label="Remove person ' + (i + 1) + '">×</button></div>';
+    }).join("");
+    $("people").innerHTML = html;
+  }
+
+  function renderExpenses() {
+    $("expenses").innerHTML = state.expenses.map(function (e, i) {
+      return '<div class="exp-row" data-eid="' + e.id + '">' +
+        '<select class="c-who" id="payer-' + e.id + '" data-person data-field="payer" aria-label="Who paid, receipt ' + (i + 1) + '"></select>' +
+        '<input class="c-shop" type="text" id="shop-' + e.id + '" data-field="shop" value="' + esc(e.shop) + '" placeholder="Shop, e.g. Tesco" aria-label="Shop, receipt ' + (i + 1) + '" autocomplete="off">' +
+        '<input class="c-amt" type="number" id="amt-' + e.id + '" data-field="amount" value="' + esc(e.amount) + '" placeholder="0.00" min="0" step="0.01" inputmode="decimal" aria-label="Amount, receipt ' + (i + 1) + '">' +
+        '<button class="btn-x" type="button" data-del-expense="' + e.id + '" aria-label="Remove receipt ' + (i + 1) + '">×</button></div>';
+    }).join("");
+  }
+
+  function renderRides() {
+    if (!state.rides.length) {
+      $("rides").innerHTML = '<div class="ride-empty">No lifts added. Everyone made their own way.</div>';
+      return;
+    }
+    $("rides").innerHTML = state.rides.map(function (r, i) {
+      return '<div class="ride-row" data-rid="' + r.id + '">' +
+        '<label class="f c-p">Got a lift<select id="pass-' + r.id + '" data-person data-field="passenger"></select></label>' +
+        '<div class="legs">' +
+          '<label class="leg"><input type="checkbox" id="pick-' + r.id + '" data-field="pick"' + (r.pick ? " checked" : "") + '>Pick-up</label>' +
+          '<label class="leg"><input type="checkbox" id="drop-' + r.id + '" data-field="drop"' + (r.drop ? " checked" : "") + '>Drop-off</label>' +
+        '</div>' +
+        '<label class="f c-d">Driven by<select id="drv-' + r.id + '" data-person data-field="driver"></select></label>' +
+        '<button class="btn-x" type="button" data-del-ride="' + r.id + '" aria-label="Remove lift ' + (i + 1) + '">×</button></div>';
+    }).join("");
+  }
+
+  function renderExtras() {
+    $("extras").innerHTML = (state.extras || []).map(function (x, i) {
+      return '<div class="extra-row" data-xid="' + x.id + '">' +
+        '<select id="xwho-' + x.id + '" data-person data-field="who" aria-label="Who is paying extra, row ' + (i + 1) + '"></select>' +
+        '<input type="number" id="xamt-' + x.id + '" data-field="amount" value="' + esc(x.amount) + '" placeholder="€ extra" min="0" step="0.5" inputmode="decimal" aria-label="Extra amount, row ' + (i + 1) + '">' +
+        '<button class="btn-x" type="button" data-del-extra="' + x.id + '" aria-label="Remove extra payment ' + (i + 1) + '">×</button></div>';
+    }).join("");
+  }
+
+  function refreshSelects() {
+    state.extras.forEach(function (x) { var s = $("xwho-" + x.id); if (s) fillSelect(s, x.who, "Who's paying extra?"); });
+    fillSelect($("host"), state.hostId, "Nobody's place / venue");
+    fillSelect($("planner"), state.plannerId, "Nobody in particular");
+    var ini = $("initiator"), iv = state.initiator === undefined ? "same" : state.initiator;
+    ini.innerHTML = "";
+    ini.add(new Option("Same person as the planner", "same"));
+    ini.add(new Option("Nobody in particular", ""));
+    attendees().forEach(function (p) { ini.add(new Option(p.name.trim(), p.id)); });
+    ini.value = (iv === "same" || iv === "" || attendees().some(function (p) { return p.id === iv; })) ? iv : "same";
+    fillSelect($("side"), state.sideId, "Nobody made one");
+    var cookLabels = ["Choose the cook", "Second cook (optional)", "Third cook (optional)"];
+    for (var i = 0; i < 3; i++) fillSelect($("cook-" + i), state.cooks[i], cookLabels[i]);
+    state.expenses.forEach(function (e) { var s = $("payer-" + e.id); if (s) fillSelect(s, e.payer, "Who paid?"); });
+    state.rides.forEach(function (r) {
+      var a = $("pass-" + r.id), b = $("drv-" + r.id);
+      if (a) fillSelect(a, r.passenger, "Choose person");
+      if (b) fillSelect(b, r.driver, "Choose driver");
+    });
+  }
+
+  function renderRates() {
+    var R = state.rates;
+    Object.keys(DEFAULT_RATES).forEach(function (k) { $("r-" + k).value = R[k]; });
+    $("rate-host").textContent = money(R.host) + " edge";
+    $("rate-ride").textContent = money(R.ride) + " per leg, " + money(R.ride * 2) + " both ways";
+    $("rate-meal").textContent = money(R.meal) + " split between cooks";
+    $("rate-side").textContent = money(R.side) + " edge, one person";
+    $("rate-plan").textContent = money(R.plan) + " edge";
+    $("init-label").textContent = "Whose idea was the gathering? They pay " + money(R.init) + " extra";
+    $("limit-tiers").innerHTML =
+      '<div class="tier"><span class="k">Edge up to ' + money(R.capTier1) + '</span><span class="v">' + money(R.capLow) + ' back max</span></div>' +
+      '<div class="tier"><span class="k">Edge over ' + money(R.capTier1) + ' up to ' + money(R.capTier2) + '</span><span class="v">' + money(R.capMid) + ' back max</span></div>' +
+      '<div class="tier"><span class="k">Edge over ' + money(R.capTier2) + '</span><span class="v">' + money(R.capHigh) + ' back max</span></div>';
+  }
+
+  function renderResults() {
+    var c = compute(state);
+    var R = state.rates;
+
+    $("count-line").innerHTML = c.N ? "<b>" + c.N + "</b> " + (c.N === 1 ? "person" : "people") + " at this gathering." : "Add at least two names to start.";
+    $("total").textContent = money(c.total);
+    $("even-line").innerHTML = c.N ? "Split evenly that would be <b>" + money(c.base) + "</b> each, before the edges in step 3." : "";
+
+    $("hint-host").textContent = c.notes.host || "Pick the person whose home was used. They pay " + money(R.host) + " less and the rest share it.";
+    $("hint-side").textContent = c.notes.side || "A dessert or side dish someone made. That one person gets " + money(R.side) + " off and the rest share it.";
+    $("hint-meal").textContent = c.notes.meal || "Up to three cooks. One cook gets " + money(R.meal) + " off, two get " + money(R.meal / 2) + " each, three get " + money(R.meal / 3) + " each.";
+    $("hint-plan").textContent = c.notes.plan || "The person who organised it and messaged everyone gets " + money(R.plan) + " off.";
+    $("hint-init").textContent = c.notes.init || "The person pushing for the gathering puts in " + money(R.init) +
+      " extra to show they want everyone there. It lowers everyone else's share.";
+
+    $("hint-cap").textContent = c.notes.cap.length ? c.notes.cap.join(" ") : "Nobody's edges beat their share this time, so the limit doesn't apply.";
+    $("hint-extra").textContent = c.notes.extras.length ? c.notes.extras.join(" ") :
+      "Pick the person and how much extra they're putting in. It's split equally off everyone else's share.";
+
+    $("warns").innerHTML = c.warns.map(function (w) { return '<div class="warn">' + esc(w) + "</div>"; }).join("");
+
+    $("figures").innerHTML =
+      '<div class="fig"><span class="k">Total spent</span><span class="v">' + money(c.total) + "</span></div>" +
+      '<div class="fig"><span class="k">People</span><span class="v">' + c.N + "</span></div>" +
+      '<div class="fig"><span class="k">Even split</span><span class="v">' + money(c.base) + "</span></div>";
+
+    if (!c.N || c.total === 0) {
+      $("transfers").innerHTML = '<li class="square">Add the people and receipts above to see who owes whom.</li>';
+    } else if (!c.transfers.length) {
+      $("transfers").innerHTML = '<li class="square">Everyone is square. No money needs to move.</li>';
+    } else {
+      $("transfers").innerHTML = c.transfers.map(function (t) {
+        return '<li class="transfer"><span class="from">' + esc(t.from) + '</span><span class="arrow">sends →</span><span class="to">' + esc(t.to) + '</span><span class="amt">' + money(t.amt) + "</span></li>";
+      }).join("");
+    }
+
+    $("shares").innerHTML = c.rows.map(function (r) {
+      var a = r.adj, chips = [];
+      if (a.host) chips.push('<span class="chip edge">Host ' + money(a.host) + "</span>");
+      if (a.meal) chips.push('<span class="chip edge">Cooked ' + money(a.meal) + "</span>");
+      if (a.side) chips.push('<span class="chip edge">Sweet/side dish ' + money(a.side) + "</span>");
+      if (a.plan) chips.push('<span class="chip edge">Planned ' + money(a.plan) + "</span>");
+      a.items.forEach(function (t) {
+        chips.push('<span class="chip' + (t.indexOf("Drove") === 0 ? " edge" : "") + '">' + esc(t) + "</span>");
+      });
+      if (a.cover > 0.004) chips.push('<span class="chip">Covering others +' + money(a.cover) + "</span>");
+      if (r.cap) chips.push('<span class="chip edge">Money back limited to ' + money(r.cap.now) + " (was " + money(r.cap.was) + ")</span>");
+      else if (a.capAdj < -0.004) chips.push('<span class="chip">Back limit returned ' + money(a.capAdj) + "</span>");
+      if (a.push > 0.004) chips.push('<span class="chip">Wanted the gathering +' + money(a.push) + "</span>");
+      else if (a.push < -0.004) chips.push('<span class="chip">Thanks to ' + esc(r.starterName) + " " + money(a.push) + "</span>");
+      if (a.gift > 0.004) chips.push('<span class="chip">Paying extra +' + money(a.gift) + "</span>");
+      else if (a.gift < -0.004) chips.push('<span class="chip">Thanks to extras ' + money(a.gift) + "</span>");
+      var pill;
+      var b = round2(r.balance);
+      if (b > 0.004) pill = '<span class="pill get">Gets back <span>' + money(b) + "</span></span>";
+      else if (b < -0.004) pill = '<span class="pill owe">Owes <span>' + money(-b) + "</span></span>";
+      else pill = '<span class="pill even">Square</span>';
+      return '<div class="share"><div><div class="who">' + esc(r.name) + "</div>" +
+        (r.edge > 0.004 ? '<div class="edge-line">Edge: ' + money(r.edge) + " less to pay</div>" : "") +
+        (chips.length ? '<div class="chips">' + chips.join("") + "</div>" : "") + "</div>" +
+        '<div class="nums"><span class="line">Share <b>' + money(r.share) + '</b></span><span class="line">Paid <b>' + money(r.paid) + "</b></span>" + pill + "</div></div>";
+    }).join("") || '<div class="square">No one added yet.</div>';
+
+    var sumShares = c.rows.reduce(function (s, r) { return s + r.share; }, 0);
+    $("check").textContent = c.N ? "Check: the shares add up to " + money(sumShares) + ", the same as the total spent." : "";
+    lastCalc = c;
+  }
+
+  var lastCalc = null;
+
+  function renderAll() {
+    renderHeader(); renderPeople(); renderExpenses(); renderRides(); renderExtras(); renderRates();
+    refreshSelects(); renderResults();
+  }
+
+  function changed(namesChanged) {
+    if (state.example) { state.example = false; $("example-note").hidden = true; }
+    if (namesChanged) refreshSelects();
+    renderResults();
+    save();
+  }
+
+  /* ---------- Events ---------- */
+  $("g-title").addEventListener("input", function (e) { state.title = e.target.value; changed(); });
+  $("g-date").addEventListener("input", function (e) { state.date = e.target.value; changed(); });
+  $("g-place").addEventListener("input", function (e) { state.place = e.target.value; changed(); });
+
+  $("people").addEventListener("input", function (e) {
+    var id = e.target.getAttribute("data-pid"); if (!id) return;
+    var p = state.people.find(function (x) { return x.id === id; });
+    if (p) { p.name = e.target.value; changed(true); }
+  });
+  $("people").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-person"); if (!id) return;
+    state.people = state.people.filter(function (p) { return p.id !== id; });
+    if (state.hostId === id) state.hostId = "";
+    if (state.plannerId === id) state.plannerId = "";
+    if (state.initiator === id) state.initiator = "same";
+    state.cooks = state.cooks.map(function (c) { return c === id ? "" : c; });
+    if (state.sideId === id) state.sideId = "";
+    state.expenses.forEach(function (x) { if (x.payer === id) x.payer = ""; });
+    state.rides.forEach(function (r) { if (r.passenger === id) r.passenger = ""; if (r.driver === id) r.driver = ""; });
+    state.extras.forEach(function (x) { if (x.who === id) x.who = ""; });
+    renderPeople(); changed(true);
+  });
+  $("add-person").addEventListener("click", function () {
+    var p = { id: nid("p"), name: "" };
+    state.people.push(p); renderPeople(); changed(true);
+    var el = $("name-" + p.id); if (el) el.focus();
+  });
+
+  function rowHandler(listId, attr, coll) {
+    var root = $(listId);
+    function update(e) {
+      var row = e.target.closest("[" + attr + "]"); if (!row) return;
+      var field = e.target.getAttribute("data-field"); if (!field) return;
+      var item = state[coll].find(function (x) { return x.id === row.getAttribute(attr); });
+      if (!item) return;
+      item[field] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      if (e.target.tagName === "SELECT") e.target.classList.toggle("empty", !e.target.value);
+      changed();
+    }
+    root.addEventListener("input", update);
+    root.addEventListener("change", function (e) { if (e.target.tagName === "SELECT" || e.target.type === "checkbox") update(e); });
+  }
+  rowHandler("expenses", "data-eid", "expenses");
+  rowHandler("rides", "data-rid", "rides");
+  rowHandler("extras", "data-xid", "extras");
+
+  $("extras").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-extra"); if (!id) return;
+    state.extras = state.extras.filter(function (x) { return x.id !== id; });
+    renderExtras(); changed(true);
+  });
+  $("add-extra").addEventListener("click", function () {
+    var x = { id: nid("x"), who: "", amount: "" };
+    state.extras.push(x); renderExtras(); changed(true);
+    var el = $("xwho-" + x.id); if (el) el.focus();
+  });
+
+  $("expenses").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-expense"); if (!id) return;
+    state.expenses = state.expenses.filter(function (x) { return x.id !== id; });
+    if (!state.expenses.length) state.expenses.push({ id: nid("e"), payer: "", shop: "", amount: "" });
+    renderExpenses(); changed(true);
+  });
+  $("add-expense").addEventListener("click", function () {
+    var x = { id: nid("e"), payer: "", shop: "", amount: "" };
+    state.expenses.push(x); renderExpenses(); changed(true);
+    var el = $("payer-" + x.id); if (el) el.focus();
+  });
+
+  $("rides").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-ride"); if (!id) return;
+    state.rides = state.rides.filter(function (x) { return x.id !== id; });
+    renderRides(); changed(true);
+  });
+  $("add-ride").addEventListener("click", function () {
+    var r = { id: nid("r"), passenger: "", driver: "", pick: true, drop: true };
+    state.rides.push(r); renderRides(); changed(true);
+    var el = $("pass-" + r.id); if (el) el.focus();
+  });
+
+  $("host").addEventListener("change", function (e) { state.hostId = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
+  $("planner").addEventListener("change", function (e) { state.plannerId = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
+  $("initiator").addEventListener("change", function (e) { state.initiator = e.target.value; changed(); });
+  [0, 1, 2].forEach(function (i) {
+    $("cook-" + i).addEventListener("change", function (e) { state.cooks[i] = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
+  });
+  $("side").addEventListener("change", function (e) { state.sideId = e.target.value; e.target.classList.toggle("empty", !e.target.value); changed(); });
+
+  Object.keys(DEFAULT_RATES).forEach(function (k) {
+    $("r-" + k).addEventListener("input", function (e) {
+      var v = num(e.target.value);
+      state.rates[k] = v < 0 ? 0 : v;
+      renderRates(); changed();
+    });
+  });
+
+  $("btn-fresh").addEventListener("click", function () { state = blankState(); save(); renderAll(); $("g-title").focus(); });
+
+  var clearTimer = null;
+  $("btn-clear").addEventListener("click", function (e) {
+    var b = e.currentTarget;
+    if (!b.classList.contains("armed")) {
+      b.classList.add("armed"); b.textContent = "Tap again to clear";
+      clearTimer = setTimeout(function () { b.classList.remove("armed"); b.textContent = "Clear everything"; }, 3500);
+      return;
+    }
+    clearTimeout(clearTimer);
+    b.classList.remove("armed"); b.textContent = "Clear everything";
+    var keepRates = state.rates;
+    state = blankState(); state.rates = keepRates; save(); renderAll();
+    window.scrollTo({ top: 0 });
+  });
+
+  function summaryText() {
+    var c = lastCalc || compute(state);
+    var lines = [];
+    lines.push((state.title || "Gathering") + (state.date ? " · " + fmtDate(state.date) : ""));
+    if (state.place) lines.push(state.place);
+    lines.push("");
+    lines.push("Total spent: " + money(c.total) + " · " + c.N + " people");
+    state.expenses.forEach(function (e) {
+      if (num(e.amount)) lines.push("  " + (nameOf(e.payer) || "?") + " – " + (e.shop || "shop") + ": " + money(num(e.amount)));
+    });
+    lines.push("");
+    lines.push("Shares:");
+    c.rows.forEach(function (r) {
+      var bits = [];
+      if (r.edge > 0.004) bits.push("edge " + money(r.edge));
+      if (r.cap) bits.push("money back limited to " + money(r.cap.now));
+      if (r.push > 0.004) bits.push("wanted the gathering, " + money(r.push) + " extra");
+      if (r.gift > 0.004) bits.push("paying " + money(r.gift) + " extra");
+      lines.push("  " + r.name + ": " + money(r.share) + (bits.length ? " (" + bits.join(", ") + ")" : ""));
+    });
+    lines.push("");
+    if (c.transfers.length) {
+      lines.push("Settle up:");
+      c.transfers.forEach(function (t) { lines.push("  " + t.from + " → " + t.to + ": " + money(t.amt)); });
+    } else {
+      lines.push("Everyone is square.");
+    }
+    return lines.join("\n");
+  }
+
+  $("btn-copy").addEventListener("click", function () {
+    var text = summaryText();
+    var fb = $("copy-fallback");
+    function fallback() {
+      fb.hidden = false; fb.value = text; fb.focus(); fb.select();
+      $("copy-status").textContent = "Select the text below and copy it.";
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () {
+        fb.hidden = true;
+        $("copy-status").textContent = "Copied. Paste it in the group chat.";
+        setTimeout(function () { $("copy-status").textContent = ""; }, 3000);
+      }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  function fmtDate(iso) {
+    var d = new Date(iso + "T12:00:00");
+    return isNaN(d) ? iso : d.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  }
+
+  /* ---------- Shareable summary: drawn on a canvas, saved as PNG or PDF ---------- */
+  // Fixed light palette so the file looks the same for everyone in the group chat.
+  var P = {
+    bg: "#FFFFFF", band: "#1D6A50", bandInk: "#FFFFFF", bandSoft: "#CDE8DB", ink: "#15201C", muted: "#5A6A63",
+    line: "#D3DDD8", soft: "#EEF3F0", accent: "#1D6A50", accentSoft: "#DAEAE2", edge: "#8F5600", owe: "#A8261E", oweSoft: "#F7DDDA"
+  };
+  var FD = '"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif';
+  var FB = 'Figtree, "Segoe UI", system-ui, -apple-system, sans-serif';
+  var FN = '"IBM Plex Mono", ui-monospace, Menlo, monospace';
+  var IMG_W = 600;
+
+  function paintSummary(ctx, c, draw) {
+    var W = IMG_W, M = 28, IW = W - 2 * M, y = 0;
+    function font(w, s, f) { ctx.font = w + " " + s + "px " + f; }
+    function text(t, x, yy, color, align) {
+      if (!draw) return;
+      ctx.fillStyle = color; ctx.textAlign = align || "left"; ctx.fillText(t, x, yy);
+    }
+    function fit(t, max) {
+      if (ctx.measureText(t).width <= max) return t;
+      while (t.length > 1 && ctx.measureText(t + "…").width > max) t = t.slice(0, -1);
+      return t + "…";
+    }
+    function wrap(t, max) {
+      var words = String(t).split(/\s+/), lines = [], cur = "";
+      words.forEach(function (w) {
+        var next = cur ? cur + " " + w : w;
+        if (cur && ctx.measureText(next).width > max) { lines.push(cur); cur = w; } else cur = next;
+      });
+      if (cur) lines.push(cur);
+      return lines.length ? lines : [""];
+    }
+    function box(x, yy, w, h, color, r) {
+      if (!draw) return;
+      ctx.fillStyle = color; ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, yy, w, h, r || 0); else ctx.rect(x, yy, w, h);
+      ctx.fill();
+    }
+    function heading(t) {
+      y += 26; font("700", 11, FB); text(t.toUpperCase().split("").join(String.fromCharCode(8202)), M, y, P.muted); y += 22;
+    }
+
+    // Header band
+    font("800", 28, FD);
+    var titleLines = wrap(state.title || "Gathering", IW);
+    var meta = [state.date ? fmtDate(state.date) : "", state.place].filter(Boolean).join("  ·  ");
+    var bandH = 24 + 20 + titleLines.length * 32 + (meta ? 26 : 0) + 22;
+    box(0, 0, W, bandH, P.band, 0);
+    y = 24; font("700", 11, FB); text("GATHERING SPLIT", M, y, P.bandSoft); y += 20;
+    font("800", 28, FD);
+    titleLines.forEach(function (l) { text(l, M, y, P.bandInk); y += 32; });
+    if (meta) { y += 4; font("500", 14, FB); text(fit(meta, IW), M, y, P.bandSoft); y += 22; }
+    y = bandH;
+
+    // Figures
+    y += 20;
+    var fw = (IW - 20) / 3;
+    [["Total spent", money(c.total)], ["People", String(c.N)], ["Even split", money(c.base)]].forEach(function (f, i) {
+      var x = M + i * (fw + 10);
+      box(x, y, fw, 62, P.soft, 8);
+      font("600", 11, FB); text(f[0], x + 12, y + 12, P.muted);
+      font("600", 19, FN); text(f[1], x + 12, y + 30, P.ink);
+    });
+    y += 62;
+
+    // Who sends what
+    heading("Who sends what");
+    if (!c.transfers.length) {
+      box(M, y, IW, 40, P.soft, 8); font("500", 14, FB);
+      text(c.total ? "Everyone is square. No money needs to move." : "Nothing spent yet.", M + 14, y + 12, P.muted); y += 40;
+    }
+    c.transfers.forEach(function (t, i) {
+      if (i) y += 8;
+      box(M, y, IW, 44, P.accentSoft, 8);
+      font("600", 16, FN); var amt = money(t.amt); var aw = ctx.measureText(amt).width;
+      text(amt, M + IW - 14, y + 14, P.ink, "right");
+      var avail = IW - 28 - aw - 16;
+      font("700", 15, FB); var from = fit(t.from, avail * 0.42); var fwid = ctx.measureText(from).width;
+      text(from, M + 14, y + 14, P.ink);
+      font("600", 13, FB); text("sends →", M + 14 + fwid + 8, y + 16, P.accent); var sw = ctx.measureText("sends →").width;
+      font("700", 15, FB); text(fit(t.to, avail - fwid - sw - 16), M + 14 + fwid + sw + 16, y + 14, P.ink);
+      y += 44;
+    });
+
+    // Each person
+    heading("Each person");
+    c.rows.forEach(function (r, i) {
+      if (i && draw) { ctx.fillStyle = P.line; ctx.fillRect(M, y, IW, 1); }
+      var b = round2(r.balance);
+      var label = b > 0.004 ? "Gets back " + money(b) : b < -0.004 ? "Owes " + money(-b) : "Square";
+      var col = b > 0.004 ? P.accent : b < -0.004 ? P.owe : P.muted;
+      var bg = b > 0.004 ? P.accentSoft : b < -0.004 ? P.oweSoft : P.soft;
+      font("700", 13, FB); var pw = ctx.measureText(label).width + 20;
+      box(M + IW - pw, y + 10, pw, 26, bg, 13);
+      text(label, M + IW - 10, y + 16, col, "right");
+      font("700", 15, FB); text(fit(r.name, IW - pw - 16), M, y + 12, P.ink);
+      font("500", 12, FB);
+      text("Share " + money(r.share) + "   ·   Paid " + money(r.paid), M + IW, y + 42, P.muted, "right");
+      var subs = [];
+      if (r.edge > 0.004) subs.push(["Edge: " + money(r.edge) + " less", P.edge]);
+      if (r.cap) subs.push(["Money back limited to " + money(r.cap.now), P.edge]);
+      if (r.push > 0.004) subs.push(["Wanted the gathering: " + money(r.push) + " extra", P.accent]);
+      if (r.gift > 0.004) subs.push(["Paying " + money(r.gift) + " extra. Thank you!", P.accent]);
+      font("700", 12, FB);
+      subs.forEach(function (sl, k) { text(fit(sl[0], IW * 0.5), M, y + 34 + k * 17, sl[1]); });
+      y += Math.max(62, 34 + subs.length * 17 + 12);
+    });
+
+    // Receipts
+    heading("Receipts");
+    var anyReceipt = false;
+    state.expenses.forEach(function (e) {
+      var a = num(e.amount); if (!a) return;
+      anyReceipt = true;
+      font("500", 13, FN); var am = money(a); text(am, M + IW, y, P.ink, "right"); var aw = ctx.measureText(am).width;
+      font("500", 13, FB); text(fit((nameOf(e.payer) || "Someone") + "  ·  " + (e.shop || "Shop"), IW - aw - 16), M, y, P.ink);
+      y += 24;
+    });
+    if (!anyReceipt) { font("500", 13, FB); text("No receipts added.", M, y, P.muted); y += 24; }
+    if (draw) { ctx.fillStyle = P.ink; ctx.fillRect(M, y + 2, IW, 2); }
+    y += 12; font("700", 14, FB); text("Total", M, y, P.ink); font("600", 14, FN); text(money(c.total), M + IW, y, P.ink, "right"); y += 22;
+
+    // Edges explained
+    var notes = [["Hosting", c.notes.host], ["Main meal", c.notes.meal], ["Sweet or side dish", c.notes.side], ["Planning", c.notes.plan]]
+      .concat(c.notes.rides.map(function (n) { return ["Lift", n]; }))
+      .concat([["Whose gathering", c.notes.init]])
+      .concat(c.notes.cap.map(function (n) { return ["Money back limit", n]; }))
+      .concat(c.notes.extras.map(function (n) { return ["Paying extra", n]; }))
+      .filter(function (n) { return n[1]; })
+      .map(function (n) { return n[0] + ": " + n[1]; });
+    if (notes.length) {
+      heading("How it was worked out");
+      font("500", 13, FB);
+      notes.forEach(function (n) {
+        wrap(n, IW - 14).forEach(function (l, i) {
+          if (i === 0 && draw) { ctx.fillStyle = P.edge; ctx.fillRect(M, y + 6, 5, 5); }
+          text(l, M + 14, y, P.ink); y += 19;
+        });
+        y += 4;
+      });
+    }
+
+    y += 18; font("500", 11, FB);
+    text("Shares add up to " + money(c.rows.reduce(function (s, r) { return s + r.share; }, 0)) + ", the total spent.", M, y, P.muted);
+    y += 34;
+    return Math.ceil(y);
+  }
+
+  function renderCanvas() {
+    var c = compute(state);
+    var m = document.createElement("canvas").getContext("2d");
+    m.textBaseline = "top";
+    var h = paintSummary(m, c, false);
+    var S = 2, cv = document.createElement("canvas");
+    cv.width = IMG_W * S; cv.height = h * S;
+    var ctx = cv.getContext("2d");
+    ctx.scale(S, S); ctx.textBaseline = "top";
+    ctx.fillStyle = P.bg; ctx.fillRect(0, 0, IMG_W, h);
+    paintSummary(ctx, c, true);
+    return cv;
+  }
+
+  function canvasBlob(cv, type, q) {
+    return new Promise(function (res, rej) { cv.toBlob(function (b) { b ? res(b) : rej(new Error("toBlob failed")); }, type, q); });
+  }
+
+  // A one-page PDF holding the summary as a JPEG, sized to A4 width.
+  function jpegToPdf(jpg, pxW, pxH) {
+    var enc = new TextEncoder(), parts = [], offsets = [], len = 0;
+    function push(x) { var b = typeof x === "string" ? enc.encode(x) : x; parts.push(b); len += b.length; }
+    function obj(n, body) { offsets[n] = len; push(n + " 0 obj\n"); body(); push("\nendobj\n"); }
+    var W = 595.28, H = Math.round(W * pxH / pxW * 100) / 100;
+    push("%PDF-1.4\n"); push(new Uint8Array([0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]));
+    obj(1, function () { push("<< /Type /Catalog /Pages 2 0 R >>"); });
+    obj(2, function () { push("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"); });
+    obj(3, function () { push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + W + " " + H + "] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>"); });
+    obj(4, function () {
+      push("<< /Type /XObject /Subtype /Image /Width " + pxW + " /Height " + pxH + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpg.length + " >>\nstream\n");
+      push(jpg); push("\nendstream");
+    });
+    var content = "q " + W + " 0 0 " + H + " 0 0 cm /Im0 Do Q";
+    obj(5, function () { push("<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream"); });
+    var xref = len, x = "xref\n0 6\n0000000000 65535 f \n";
+    for (var i = 1; i <= 5; i++) x += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
+    push(x + "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n");
+    return new Blob(parts, { type: "application/pdf" });
+  }
+
+  function fileBase() {
+    var slug = (state.title || "gathering").toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "gathering";
+    return slug + (state.date ? "-" + state.date : "");
+  }
+
+  async function makeFile(kind) {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) { /* use fallbacks */ }
+    var cv = renderCanvas();
+    if (kind === "png") return { blob: await canvasBlob(cv, "image/png"), name: fileBase() + ".png" };
+    var jpg = new Uint8Array(await (await canvasBlob(cv, "image/jpeg", 0.92)).arrayBuffer());
+    return { blob: jpegToPdf(jpg, cv.width, cv.height), name: fileBase() + ".pdf" };
+  }
+
+  var statusTimer = null;
+  function flash(msg) {
+    var el = $("copy-status");
+    el.textContent = msg;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () { el.textContent = ""; }, 5000);
+  }
+
+  // Inside Claude the viewer's save prompt handles the file; opened as a plain file, the browser downloads it.
+  var inClaude = !!(window.claude && typeof window.claude.use === "function");
+
+  async function saveFile(kind, btn) {
+    btn.disabled = true;
+    try {
+      var f = await makeFile(kind);
+      if (inClaude) {
+        var dl = null;
+        try { dl = await window.claude.use("downloads"); } catch (e) { dl = null; }
+        if (!dl) { flash("Saving files isn't available here. Use Copy as text instead."); return; }
+        try {
+          await dl.save({ filename: f.name, data: f.blob });
+          flash("Saved " + f.name + ". Send it in the group chat.");
+        } catch (err) {
+          var code = err && err.code;
+          flash(code === "declined" ? "Save cancelled." : code === "rate_limited" ? "A save is already open. Try again in a moment." : "Saving files isn't available here. Use Copy as text instead.");
+        }
+        return;
+      }
+      var url = URL.createObjectURL(f.blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+      flash("Downloaded " + f.name + ".");
+    } catch (err) {
+      flash("Couldn't make the file. Try Copy as text instead.");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  $("btn-pdf").addEventListener("click", function (e) { saveFile("pdf", e.currentTarget); });
+  $("btn-png").addEventListener("click", function (e) { saveFile("png", e.currentTarget); });
+
+  // Phones opening the plain file get a share sheet (WhatsApp, etc.).
+  try {
+    var probe = new File(["x"], "x.pdf", { type: "application/pdf" });
+    if (!inClaude && navigator.canShare && navigator.canShare({ files: [probe] })) $("btn-share").hidden = false;
+  } catch (e) { /* no file sharing */ }
+  $("btn-share").addEventListener("click", async function (e) {
+    var btn = e.currentTarget; btn.disabled = true;
+    try {
+      var f = await makeFile("pdf");
+      await navigator.share({ files: [new File([f.blob], f.name, { type: "application/pdf" })], title: state.title || "Gathering split" });
+    } catch (err) {
+      if (!err || err.name !== "AbortError") flash("Sharing didn't work here. Use Download PDF instead.");
+    } finally { btn.disabled = false; }
+  });
+
+  // Exposed for testing in the console.
+  window.__gatheringSplit = { compute: compute, exampleState: exampleState, makeFile: makeFile };
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
