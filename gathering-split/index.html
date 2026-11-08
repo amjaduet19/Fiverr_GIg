@@ -189,6 +189,13 @@ button { font: 600 14px/1 var(--f-body); cursor: pointer; border-radius: 8px; }
   .ride-row .c-p { grid-area: p; } .ride-row .legs { grid-area: l; } .ride-row .c-d { grid-area: d; }
   .ride-row .btn-x { grid-area: x; align-self: stretch; height: auto; }
 }
+.extra-list { display: flex; flex-direction: column; gap: 8px; }
+.extra-row { display: grid; grid-template-columns: minmax(0, 1fr) 130px 40px; gap: 8px; align-items: center; }
+.limit-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .limit-tiers { grid-template-columns: 1fr; } }
+.tier { background: var(--field); border-radius: 8px; padding: 9px 12px; display: flex; flex-direction: column; gap: 2px; }
+.tier .k { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tier .v { font: 600 16px/1.2 var(--f-num); color: var(--edge); }
 .ride-empty { font-size: 14px; color: var(--muted); padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r); }
 
 details.rates { border: 1px solid var(--line); border-radius: var(--r); padding: 0 14px; }
@@ -331,6 +338,13 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       <p class="hint" id="hint-plan"></p>
     </div>
 
+    <div class="factor">
+      <h3 class="sub">Money back limit <span class="rate">for anyone whose edges beat their share</span></h3>
+      <p class="hint">If someone's edges add up to more than their share, they would get paid just for helping. That money back is limited by how big their edge is. You always get back what you spent at the shops; the limit only applies to money on top of that.</p>
+      <div class="limit-tiers" id="limit-tiers"></div>
+      <p class="hint" id="hint-cap"></p>
+    </div>
+
     <details class="rates" id="rates-box">
       <summary>Change the amounts</summary>
       <div class="rate-grid">
@@ -340,14 +354,30 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
         <label class="f">Planning, big group (€)<input type="number" id="r-planBig" min="0" step="0.5" inputmode="decimal"></label>
         <label class="f">Planning, small group (€)<input type="number" id="r-planSmall" min="0" step="0.5" inputmode="decimal"></label>
         <label class="f">Big group from (people)<input type="number" id="r-planMin" min="1" step="1" inputmode="numeric"></label>
+        <label class="f">Small edge up to (€)<input type="number" id="r-capTier1" min="0" step="1" inputmode="decimal"></label>
+        <label class="f">Medium edge up to (€)<input type="number" id="r-capTier2" min="0" step="1" inputmode="decimal"></label>
+        <label class="f">Back limit, small edge (€)<input type="number" id="r-capLow" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Back limit, medium edge (€)<input type="number" id="r-capMid" min="0" step="0.5" inputmode="decimal"></label>
+        <label class="f">Back limit, big edge (€)<input type="number" id="r-capHigh" min="0" step="0.5" inputmode="decimal"></label>
       </div>
     </details>
   </section>
 
   <!-- Step 4 -->
-  <section class="step" aria-labelledby="h-split">
+  <section class="step" aria-labelledby="h-extra">
     <div class="step-head">
       <span class="step-no">4</span>
+      <div><h2 id="h-extra">Paying extra</h2><p>Optional. Anyone who wants to put in more than their share, so the gathering is lighter on everyone else.</p></div>
+    </div>
+    <div class="extra-list" id="extras"></div>
+    <button class="btn-add" id="add-extra" type="button">+ Add someone paying extra</button>
+    <p class="hint" id="hint-extra" style="margin:0;font-size:13.5px;color:var(--muted)"></p>
+  </section>
+
+  <!-- Step 5 -->
+  <section class="step" aria-labelledby="h-split">
+    <div class="step-head">
+      <span class="step-no">5</span>
       <div><h2 id="h-split">The split</h2><p>Each person's fair share after the edges, and who sends money to whom.</p></div>
     </div>
     <div class="warns" id="warns"></div>
@@ -382,7 +412,10 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
   "use strict";
 
   /* ---------- Rules ---------- */
-  var DEFAULT_RATES = { host: 10, ride: 1.5, meal: 10, planBig: 5, planSmall: 3, planMin: 5 };
+  var DEFAULT_RATES = {
+    host: 10, ride: 1.5, meal: 10, planBig: 5, planSmall: 3, planMin: 5,
+    capTier1: 10, capTier2: 20, capLow: 2, capMid: 5, capHigh: 10
+  };
   var STORE_KEY = "gathering-split-v1";
   var MIN_SLOTS = 8;
 
@@ -411,7 +444,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       example: false, title: "", date: todayISO(), place: "",
       people: people,
       expenses: [{ id: nid("e"), payer: "", shop: "", amount: "" }],
-      hostId: "", rides: [], cooks: ["", "", ""], plannerId: "",
+      hostId: "", rides: [], cooks: ["", "", ""], plannerId: "", extras: [],
       rates: Object.assign({}, DEFAULT_RATES)
     };
   }
@@ -444,7 +477,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
         if (s && Array.isArray(s.people)) {
           s.rates = Object.assign({}, DEFAULT_RATES, s.rates || {});
           s.cooks = (s.cooks || []).concat(["", "", ""]).slice(0, 3);
-          s.rides = s.rides || []; s.expenses = s.expenses || [];
+          s.rides = s.rides || []; s.expenses = s.expenses || []; s.extras = s.extras || [];
           return s;
         }
       }
@@ -560,13 +593,84 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     }
 
     var base = N ? total / N : 0;
+    var share = {}, edge = {}, capAdj = {}, gift = {}, capInfo = {};
+    ids.forEach(function (id) {
+      var a = adj[id];
+      share[id] = base + a.host + a.meal + a.drove + a.plan + a.lift + a.cover;
+      edge[id] = -(a.host + a.meal + a.drove + a.plan);
+      capAdj[id] = 0; gift[id] = 0;
+    });
+
+    // Take `amount` off these people's shares equally, never pushing anyone below zero.
+    function lowerShares(targets, amount, ledger) {
+      var left = amount, guard = 0;
+      while (left > 0.00001 && guard++ < 100) {
+        var act = targets.filter(function (id) { return share[id] > 0.00001; });
+        if (!act.length) break;
+        var step = Math.min(left / act.length, Math.min.apply(null, act.map(function (id) { return share[id]; })));
+        act.forEach(function (id) { share[id] -= step; ledger[id] -= step; });
+        left -= step * act.length;
+      }
+      return amount - left;
+    }
+
+    // Money back limit: a share below zero means money back on top of what was spent.
+    notes.cap = [];
+    ids.forEach(function (id) {
+      if (share[id] >= -0.005) return;
+      var e = edge[id];
+      var limit = e > R.capTier2 ? R.capHigh : e > R.capTier1 ? R.capMid : R.capLow;
+      var free = -share[id];
+      if (free <= limit + 0.005) return;
+      var excess = free - limit;
+      share[id] += excess; capAdj[id] += excess;
+      var others = ids.filter(function (o) { return o !== id && share[o] > 0; });
+      var moved = lowerShares(others, excess, capAdj);
+      if (moved < excess - 0.00001) { share[id] -= excess - moved; capAdj[id] -= excess - moved; }
+      capInfo[id] = { was: free, now: -share[id], edge: e };
+      notes.cap.push(nameOf(id) + "'s edges come to " + money(e) + ", which would mean " + money(free) +
+        " back on top of what they spent. The limit for that edge is " + money(limit) + ", so the other " +
+        money(moved) + " comes off everyone else's share.");
+    });
+
+    // Paying extra: lowers everyone else's share equally.
+    notes.extras = [];
+    (s.extras || []).forEach(function (x, i) {
+      var amt = num(x.amount);
+      if (amt <= 0) return;
+      if (!x.who || !isIn(x.who)) { warns.push("Extra payment " + (i + 1) + " needs a name."); return; }
+      var others = ids.filter(function (o) { return o !== x.who; });
+      var used = lowerShares(others, amt, gift);
+      share[x.who] += used; gift[x.who] += used;
+      if (used < amt - 0.005) {
+        warns.push(nameOf(x.who) + " offered " + money(amt) + " extra, but only " + money(used) +
+          " is needed. Everyone else's share is already down to zero.");
+      }
+      if (used > 0.005) {
+        notes.extras.push(nameOf(x.who) + " is paying " + money(used) + " extra, so everyone else pays " +
+          money(used) + " less between them" + (others.length ? " (about " + money(used / others.length) + " each)." : "."));
+      }
+    });
+
     var rows = people.map(function (p) {
       var a = adj[p.id];
-      var share = base + a.host + a.meal + a.drove + a.plan + a.lift + a.cover;
-      var edge = -(a.host + a.meal + a.drove + a.plan);
-      if (share < -0.005) warns.push(p.name.trim() + "'s edges are bigger than their share, so they come out ahead even before paying anything.");
-      return { id: p.id, name: p.name.trim(), adj: a, share: share, paid: paid[p.id], balance: paid[p.id] - share, edge: edge };
+      a.capAdj = capAdj[p.id]; a.gift = gift[p.id];
+      return {
+        id: p.id, name: p.name.trim(), adj: a, share: share[p.id], paid: paid[p.id],
+        balance: paid[p.id] - share[p.id], edge: edge[p.id], cap: capInfo[p.id] || null, gift: gift[p.id]
+      };
     });
+
+    // Round shares to whole cents so they add up exactly to the total (largest remainder gets the spare cent).
+    if (rows.length) {
+      var totalC = Math.round(total * 100);
+      var raw = rows.map(function (r) { return Math.round(r.share * 100 * 1e6) / 1e6; });
+      var cents = raw.map(Math.floor);
+      var spare = totalC - cents.reduce(function (a, b) { return a + b; }, 0);
+      var order = raw.map(function (v, i) { return i; }).sort(function (i, j) { return (raw[j] - cents[j]) - (raw[i] - cents[i]); });
+      for (var k = 0; spare > 0 && k < order.length * 2; k++, spare--) cents[order[k % order.length]] += 1;
+      rows.forEach(function (r, i) { r.share = cents[i] / 100; r.balance = round2(r.paid - r.share); });
+    }
 
     // Settle up: largest debtor pays largest creditor until everyone is square.
     var cred = [], debt = [];
@@ -647,7 +751,17 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     }).join("");
   }
 
+  function renderExtras() {
+    $("extras").innerHTML = (state.extras || []).map(function (x, i) {
+      return '<div class="extra-row" data-xid="' + x.id + '">' +
+        '<select id="xwho-' + x.id + '" data-person data-field="who" aria-label="Who is paying extra, row ' + (i + 1) + '"></select>' +
+        '<input type="number" id="xamt-' + x.id + '" data-field="amount" value="' + esc(x.amount) + '" placeholder="€ extra" min="0" step="0.5" inputmode="decimal" aria-label="Extra amount, row ' + (i + 1) + '">' +
+        '<button class="btn-x" type="button" data-del-extra="' + x.id + '" aria-label="Remove extra payment ' + (i + 1) + '">×</button></div>';
+    }).join("");
+  }
+
   function refreshSelects() {
+    state.extras.forEach(function (x) { var s = $("xwho-" + x.id); if (s) fillSelect(s, x.who, "Who's paying extra?"); });
     fillSelect($("host"), state.hostId, "Nobody's place / venue");
     fillSelect($("planner"), state.plannerId, "Nobody in particular");
     var cookLabels = ["Choose the cook", "Second cook (optional)", "Third cook (optional)"];
@@ -667,6 +781,10 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     $("rate-ride").textContent = money(R.ride) + " per leg, " + money(R.ride * 2) + " both ways";
     $("rate-meal").textContent = money(R.meal) + " split between cooks";
     $("rate-plan").textContent = money(R.planBig) + " for " + R.planMin + "+ people, else " + money(R.planSmall);
+    $("limit-tiers").innerHTML =
+      '<div class="tier"><span class="k">Edge up to ' + money(R.capTier1) + '</span><span class="v">' + money(R.capLow) + ' back max</span></div>' +
+      '<div class="tier"><span class="k">Edge over ' + money(R.capTier1) + ' up to ' + money(R.capTier2) + '</span><span class="v">' + money(R.capMid) + ' back max</span></div>' +
+      '<div class="tier"><span class="k">Edge over ' + money(R.capTier2) + '</span><span class="v">' + money(R.capHigh) + ' back max</span></div>';
   }
 
   function renderResults() {
@@ -680,6 +798,10 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     $("hint-host").textContent = c.notes.host || "Pick the person whose home was used. They pay " + money(R.host) + " less and the rest share it.";
     $("hint-meal").textContent = c.notes.meal || "Up to three cooks. One cook gets " + money(R.meal) + " off, two get " + money(R.meal / 2) + " each, three get " + money(R.meal / 3) + " each.";
     $("hint-plan").textContent = c.notes.plan || "The person who organised it and messaged everyone. " + money(R.planBig) + " off with " + R.planMin + " or more people, " + money(R.planSmall) + " with fewer.";
+
+    $("hint-cap").textContent = c.notes.cap.length ? c.notes.cap.join(" ") : "Nobody's edges beat their share this time, so the limit doesn't apply.";
+    $("hint-extra").textContent = c.notes.extras.length ? c.notes.extras.join(" ") :
+      "Pick the person and how much extra they're putting in. It's split equally off everyone else's share.";
 
     $("warns").innerHTML = c.warns.map(function (w) { return '<div class="warn">' + esc(w) + "</div>"; }).join("");
 
@@ -707,6 +829,10 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
         chips.push('<span class="chip' + (t.indexOf("Drove") === 0 ? " edge" : "") + '">' + esc(t) + "</span>");
       });
       if (a.cover > 0.004) chips.push('<span class="chip">Covering others +' + money(a.cover) + "</span>");
+      if (r.cap) chips.push('<span class="chip edge">Money back limited to ' + money(r.cap.now) + " (was " + money(r.cap.was) + ")</span>");
+      else if (a.capAdj < -0.004) chips.push('<span class="chip">Back limit returned ' + money(a.capAdj) + "</span>");
+      if (a.gift > 0.004) chips.push('<span class="chip">Paying extra +' + money(a.gift) + "</span>");
+      else if (a.gift < -0.004) chips.push('<span class="chip">Thanks to extras ' + money(a.gift) + "</span>");
       var pill;
       var b = round2(r.balance);
       if (b > 0.004) pill = '<span class="pill get">Gets back <span>' + money(b) + "</span></span>";
@@ -726,7 +852,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
   var lastCalc = null;
 
   function renderAll() {
-    renderHeader(); renderPeople(); renderExpenses(); renderRides(); renderRates();
+    renderHeader(); renderPeople(); renderExpenses(); renderRides(); renderExtras(); renderRates();
     refreshSelects(); renderResults();
   }
 
@@ -755,6 +881,7 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     state.cooks = state.cooks.map(function (c) { return c === id ? "" : c; });
     state.expenses.forEach(function (x) { if (x.payer === id) x.payer = ""; });
     state.rides.forEach(function (r) { if (r.passenger === id) r.passenger = ""; if (r.driver === id) r.driver = ""; });
+    state.extras.forEach(function (x) { if (x.who === id) x.who = ""; });
     renderPeople(); changed(true);
   });
   $("add-person").addEventListener("click", function () {
@@ -779,6 +906,18 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
   }
   rowHandler("expenses", "data-eid", "expenses");
   rowHandler("rides", "data-rid", "rides");
+  rowHandler("extras", "data-xid", "extras");
+
+  $("extras").addEventListener("click", function (e) {
+    var id = e.target.getAttribute("data-del-extra"); if (!id) return;
+    state.extras = state.extras.filter(function (x) { return x.id !== id; });
+    renderExtras(); changed(true);
+  });
+  $("add-extra").addEventListener("click", function () {
+    var x = { id: nid("x"), who: "", amount: "" };
+    state.extras.push(x); renderExtras(); changed(true);
+    var el = $("xwho-" + x.id); if (el) el.focus();
+  });
 
   $("expenses").addEventListener("click", function (e) {
     var id = e.target.getAttribute("data-del-expense"); if (!id) return;
@@ -847,7 +986,11 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     lines.push("");
     lines.push("Shares:");
     c.rows.forEach(function (r) {
-      lines.push("  " + r.name + ": " + money(r.share) + (r.edge > 0.004 ? " (edge " + money(r.edge) + ")" : ""));
+      var bits = [];
+      if (r.edge > 0.004) bits.push("edge " + money(r.edge));
+      if (r.cap) bits.push("money back limited to " + money(r.cap.now));
+      if (r.gift > 0.004) bits.push("paying " + money(r.gift) + " extra");
+      lines.push("  " + r.name + ": " + money(r.share) + (bits.length ? " (" + bits.join(", ") + ")" : ""));
     });
     lines.push("");
     if (c.transfers.length) {
@@ -978,8 +1121,13 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
       font("700", 15, FB); text(fit(r.name, IW - pw - 16), M, y + 12, P.ink);
       font("500", 12, FB);
       text("Share " + money(r.share) + "   ·   Paid " + money(r.paid), M + IW, y + 42, P.muted, "right");
-      if (r.edge > 0.004) { font("700", 12, FB); text("Edge: " + money(r.edge) + " less", M, y + 34, P.edge); }
-      y += 62;
+      var subs = [];
+      if (r.edge > 0.004) subs.push(["Edge: " + money(r.edge) + " less", P.edge]);
+      if (r.cap) subs.push(["Money back limited to " + money(r.cap.now), P.edge]);
+      if (r.gift > 0.004) subs.push(["Paying " + money(r.gift) + " extra. Thank you!", P.accent]);
+      font("700", 12, FB);
+      subs.forEach(function (sl, k) { text(fit(sl[0], IW * 0.5), M, y + 34 + k * 17, sl[1]); });
+      y += Math.max(62, 34 + subs.length * 17 + 12);
     });
 
     // Receipts
@@ -999,10 +1147,12 @@ footer { color: var(--muted); font-size: 13px; text-align: center; }
     // Edges explained
     var notes = [["Hosting", c.notes.host], ["Main meal", c.notes.meal], ["Planning", c.notes.plan]]
       .concat(c.notes.rides.map(function (n) { return ["Lift", n]; }))
+      .concat(c.notes.cap.map(function (n) { return ["Money back limit", n]; }))
+      .concat(c.notes.extras.map(function (n) { return ["Paying extra", n]; }))
       .filter(function (n) { return n[1]; })
       .map(function (n) { return n[0] + ": " + n[1]; });
     if (notes.length) {
-      heading("Edges");
+      heading("How it was worked out");
       font("500", 13, FB);
       notes.forEach(function (n) {
         wrap(n, IW - 14).forEach(function (l, i) {
